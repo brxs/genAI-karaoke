@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptResponse, SlideStyle, AbsurdityLevel } from "@/lib/types";
 
 const CONCURRENT_IMAGE_REQUESTS = 2;
@@ -12,7 +12,20 @@ export function usePresentation() {
     totalSlides: 7,
   });
 
+  // AbortController ref to cancel in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const generatePresentation = useCallback(async (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: number, slideCount: number, customStylePrompt?: string) => {
+    // Abort any existing generation
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this generation
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    const signal = abortController.signal;
+
     const totalSlides = slideCount + 1; // +1 for title slide
     setGenerationState({ status: "generating-outline", totalSlides });
     setPresentation(null);
@@ -23,6 +36,7 @@ export function usePresentation() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic, absurdity, maxBulletPoints, slideCount }),
+        signal,
       });
 
       if (!outlineRes.ok) {
@@ -58,6 +72,7 @@ export function usePresentation() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slides: outline.slides }),
+        signal,
       });
 
       if (!promptsRes.ok) {
@@ -91,6 +106,9 @@ export function usePresentation() {
       });
 
       const generateImageForSlide = async (slideIndex: number): Promise<void> => {
+        // Check if aborted before starting
+        if (signal.aborted) return;
+
         try {
           const res = await fetch("/api/generate-image", {
             method: "POST",
@@ -101,6 +119,7 @@ export function usePresentation() {
               style,
               customStylePrompt,
             }),
+            signal,
           });
 
           if (!res.ok) {
@@ -109,6 +128,9 @@ export function usePresentation() {
           }
 
           const { imageBase64 } = await res.json();
+
+          // Don't update state if aborted
+          if (signal.aborted) return;
 
           setPresentation((prev) => {
             if (!prev) return null;
@@ -120,6 +142,12 @@ export function usePresentation() {
             return { ...prev, slides: updatedSlides };
           });
         } catch (err) {
+          // Ignore abort errors
+          if (err instanceof Error && err.name === "AbortError") return;
+
+          // Don't update state if aborted
+          if (signal.aborted) return;
+
           // Mark individual slide as failed but continue with others
           setPresentation((prev) => {
             if (!prev) return null;
@@ -141,11 +169,15 @@ export function usePresentation() {
         const queue = [...slideIndices];
 
         const workers = Array.from({ length: CONCURRENT_IMAGE_REQUESTS }, async () => {
-          while (queue.length > 0) {
+          while (queue.length > 0 && !signal.aborted) {
             const index = queue.shift();
             if (index === undefined) break;
 
             await generateImageForSlide(index);
+
+            // Don't update state if aborted
+            if (signal.aborted) break;
+
             completed++;
 
             setGenerationState({
@@ -161,8 +193,14 @@ export function usePresentation() {
 
       await processQueue();
 
-      setGenerationState({ status: "complete", totalSlides });
+      // Only set complete if not aborted
+      if (!signal.aborted) {
+        setGenerationState({ status: "complete", totalSlides });
+      }
     } catch (err) {
+      // Ignore abort errors - they're expected when user cancels
+      if (err instanceof Error && err.name === "AbortError") return;
+
       setGenerationState({
         status: "error",
         totalSlides,
@@ -172,6 +210,12 @@ export function usePresentation() {
   }, []);
 
   const resetPresentation = useCallback(() => {
+    // Abort any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
     setPresentation(null);
     setGenerationState({ status: "idle", totalSlides: 7 });
   }, []);
