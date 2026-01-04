@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Presentation Karaoke
+
+An AI-powered party game where you present slides you've never seen before. Enter any topic, and AI generates absurd presentation slides that you must present with a straight face.
+
+## Features
+
+- **AI-Generated Slides** - Google Gemini creates unique presentations on any topic
+- **18 Visual Styles** - From corporate to cyberpunk, kawaii to horror
+- **Adjustable Absurdity** - Control how ridiculous the content gets
+- **Custom Styles** - Define your own visual style with a text prompt
+- **Grid & Slideshow Views** - Browse or present your slides
+- **Keyboard Navigation** - Arrow keys, Space, Escape for smooth presenting
+- **Download Slides** - Save individual slides or the entire presentation
+- **Retry Failed Images** - Regenerate any slide that fails
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- A Google AI API key ([get one here](https://aistudio.google.com/apikey))
+
+### Installation
 
 ```bash
+# Clone the repo
+git clone https://github.com/brxs/genAI-karaoke.git
+cd genAI-karaoke
+
+# Install dependencies
+npm install
+
+# Start the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and enter your Google AI API key when prompted.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How to Play
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Enter a topic** - Any subject works: "quantum physics", "why cats are better than dogs", "the history of pizza"
+2. **Pick a style** - Choose from 18 visual styles or create your own
+3. **Adjust settings** - Set absurdity level, slide count, and bullet points
+4. **Generate** - Wait ~30 seconds for AI to create your presentation
+5. **Present!** - Click slideshow view and try to present with a straight face
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- [Next.js 15](https://nextjs.org/) - React framework
+- [Google Gemini API](https://ai.google.dev/) - AI text and image generation
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Deploy to Vercel with one click:
 
-## Deploy on Vercel
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/brxs/genAI-karaoke)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Or deploy manually:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+vercel deploy
+```
+
+## Privacy
+
+Your API key is stored only in your browser's cookies and is never sent to any server except Google's AI API. Each user provides their own API key.
+
+## License
+
+MIT
