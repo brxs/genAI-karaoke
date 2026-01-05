@@ -83,6 +83,7 @@ export default function Home() {
         isOpen={showApiKeyModal}
         onClose={() => setShowApiKeyModal(false)}
         onSave={handleApiKeySave}
+        onClear={() => setHasApiKey(false)}
       />
 
       {/* Header */}
@@ -123,7 +124,7 @@ export default function Home() {
                 Enter any topic. AI generates absurd slides. You present them with a straight face. Hilarity ensues.
               </p>
             </div>
-            <TopicForm onSubmit={handleSubmit} isLoading={isGenerating} />
+            <TopicForm onSubmit={handleSubmit} isLoading={isGenerating} hasApiKey={hasApiKey ?? false} onSetApiKey={() => setShowApiKeyModal(true)} />
           </div>
         )}
 
@@ -214,7 +215,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-white/5 mt-auto">
         <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-white/30">
-          <span>Powered by Gemini. Your API key stays in your browser.</span>
+          <span>Powered by Gemini. Your API key is never stored outside your browser.</span>
           <span className="hidden sm:inline text-white/20">•</span>
           <div className="flex items-center gap-3">
             <a

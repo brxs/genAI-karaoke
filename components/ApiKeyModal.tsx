@@ -6,13 +6,15 @@ interface ApiKeyModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
+  onClear: () => void;
 }
 
-export default function ApiKeyModal({ isOpen, onClose, onSave }: ApiKeyModalProps) {
+export default function ApiKeyModal({ isOpen, onClose, onSave, onClear }: ApiKeyModalProps) {
   const [apiKey, setApiKey] = useState("");
   const [maskedKey, setMaskedKey] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -59,6 +61,31 @@ export default function ApiKeyModal({ isOpen, onClose, onSave }: ApiKeyModalProp
     }
   };
 
+  const handleClear = async () => {
+    setError("");
+    setIsClearing(true);
+
+    try {
+      const response = await fetch("/api/set-api-key", {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        setError("Failed to clear API key");
+        return;
+      }
+
+      setMaskedKey(null);
+      setApiKey("");
+      onClear();
+      onClose();
+    } catch {
+      setError("Failed to clear API key");
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-zinc-900 border border-white/10 rounded-2xl max-w-md w-full p-6">
@@ -74,10 +101,18 @@ export default function ApiKeyModal({ isOpen, onClose, onSave }: ApiKeyModalProp
             API Key
           </label>
           {maskedKey && !apiKey && (
-            <div className="mb-3 px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl">
+            <div className="mb-3 px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl flex items-center justify-between">
               <p className="text-sm text-white/50">
                 Current key: <span className="font-mono text-white/70">{maskedKey}</span>
               </p>
+              <button
+                type="button"
+                onClick={handleClear}
+                disabled={isClearing}
+                className="text-sm text-red-400/70 hover:text-red-400 disabled:opacity-50 transition-colors"
+              >
+                {isClearing ? "Clearing..." : "Clear"}
+              </button>
             </div>
           )}
           <div className="relative">

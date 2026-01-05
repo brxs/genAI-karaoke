@@ -11,6 +11,8 @@ import SlideCountSlider, { SlideCount, DEFAULT_SLIDE_COUNT } from "./SlideCountS
 interface TopicFormProps {
   onSubmit: (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string) => void;
   isLoading: boolean;
+  hasApiKey: boolean;
+  onSetApiKey: () => void;
 }
 
 const EXAMPLE_TOPICS = [
@@ -76,7 +78,7 @@ function generateRandomTopic(): string {
     .replace("{place}", pickRandom(PLACES));
 }
 
-export default function TopicForm({ onSubmit, isLoading }: TopicFormProps) {
+export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey }: TopicFormProps) {
   const [topic, setTopic] = useState("");
   const [style, setStyle] = useState<SlideStyle>(DEFAULT_STYLE);
   const [absurdity, setAbsurdity] = useState<AbsurdityLevel>(DEFAULT_ABSURDITY);
@@ -145,11 +147,25 @@ export default function TopicForm({ onSubmit, isLoading }: TopicFormProps) {
 
       <button
         type="submit"
-        disabled={!topic.trim() || isLoading || isCustomMissingPrompt}
+        disabled={!topic.trim() || isLoading || isCustomMissingPrompt || !hasApiKey}
         className="w-full py-4 px-6 bg-white text-black text-lg font-medium rounded-2xl hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
         {isLoading ? "Generating..." : "Generate Slides"}
       </button>
+
+      {!hasApiKey && (
+        <p className="mt-3 text-center text-sm text-amber-400/80">
+          Please{" "}
+          <button
+            type="button"
+            onClick={onSetApiKey}
+            className="underline hover:text-amber-300 transition-colors"
+          >
+            set your API key
+          </button>{" "}
+          to generate slides.
+        </p>
+      )}
 
       <div className="mt-8">
         <p className="text-sm text-white/30 mb-3 text-center">Or try one of these:</p>
