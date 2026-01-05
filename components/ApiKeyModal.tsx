@@ -153,14 +153,22 @@ export default function ApiKeyModal({ isOpen, onClose, onSave, onClear }: ApiKey
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 border border-white/10 rounded-xl text-white/70 hover:text-white hover:bg-white/5 font-medium transition-all"
+            className="flex-1 px-4 py-3 rounded-xl text-white font-medium transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              background: "linear-gradient(180deg, #52525b 0%, #3f3f46 100%)",
+              boxShadow: "0 3px 0 #27272a, 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
+            }}
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!apiKey || isLoading}
-            className="flex-1 px-4 py-3 bg-white text-black rounded-xl hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all"
+            className="flex-1 px-4 py-3 text-black rounded-xl font-bold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              background: "linear-gradient(180deg, #ffffff 0%, #e4e4e7 100%)",
+              boxShadow: "0 3px 0 #a1a1aa, 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.8)",
+            }}
           >
             {isLoading ? "Saving..." : "Save Key"}
           </button>
