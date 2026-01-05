@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptResponse, SlideStyle, AbsurdityLevel } from "@/lib/types";
 
-const CONCURRENT_IMAGE_REQUESTS = 2;
+const CONCURRENT_IMAGE_REQUESTS = 4;
 
 export function usePresentation() {
   const [presentation, setPresentation] = useState<Presentation | null>(null);

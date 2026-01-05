@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createGeminiClient, generateStructuredOutput } from "@/lib/gemini";
-import { OUTLINE_SYSTEM_PROMPT } from "@/lib/prompts";
+import { buildOutlineSystemPrompt } from "@/lib/prompts";
 import { OutlineResponseSchema, type OutlineResponse } from "@/lib/schemas";
 import { AbsurdityLevel, getAbsurdityConfig } from "@/lib/absurdity";
 
@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
 
     const { topic, absurdity = 3, maxBulletPoints = 3, slideCount = 7 } = await request.json();
 
+    console.log("[generate-outline] Request params:", { topic, absurdity, maxBulletPoints, slideCount });
+
     if (!topic || typeof topic !== "string") {
       return NextResponse.json(
         { error: "Topic is required" },
@@ -27,11 +29,15 @@ export async function POST(request: NextRequest) {
     const absurdityConfig = getAbsurdityConfig(absurdity as AbsurdityLevel);
     const client = createGeminiClient(apiKey);
 
-    // Combine base prompt with absurdity modifier and bullet points setting
+    // Build the system prompt dynamically from absurdity config
+    const basePrompt = buildOutlineSystemPrompt(absurdityConfig.prompt);
     const bulletPointsInstruction = `\n\nIMPORTANT: Each slide must have exactly ${maxBulletPoints} bullet point${maxBulletPoints === 1 ? "" : "s"}.`;
     const slideCountInstruction = `\n\nIMPORTANT: Generate exactly ${slideCount} slides total.`;
-    const enhancedSystemPrompt = `${OUTLINE_SYSTEM_PROMPT}${bulletPointsInstruction}${slideCountInstruction}\n\nAbsurdity level: ${absurdityConfig.name}\n${absurdityConfig.promptModifier}`;
-    const userPrompt = `Create a hilarious ${slideCount}-slide presentation about: "${topic}"`;
+    const enhancedSystemPrompt = `${basePrompt}${bulletPointsInstruction}${slideCountInstruction}`;
+
+    const userPrompt = absurdity === 0
+      ? `Create an informative ${slideCount}-slide presentation about: "${topic}"`
+      : `Create a hilarious ${slideCount}-slide presentation about: "${topic}"`;
 
     const outline = await generateStructuredOutput<OutlineResponse>(
       client,

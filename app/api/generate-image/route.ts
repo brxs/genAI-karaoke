@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
 
     const { prompt, slideIndex, style, customStylePrompt, aspectRatio, imageSize } = await request.json();
 
+    console.log("[generate-image] Request params:", { slideIndex, style, customStylePrompt: customStylePrompt?.slice(0, 50), aspectRatio, imageSize });
+
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
         { error: "Image prompt is required" },

@@ -16,6 +16,8 @@ export async function POST(request: NextRequest) {
 
     const { slides } = await request.json();
 
+    console.log("[generate-image-prompts] Request params:", { slideCount: slides?.length });
+
     if (!slides || !Array.isArray(slides)) {
       return NextResponse.json(
         { error: "Slides array is required" },

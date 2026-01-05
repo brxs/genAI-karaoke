@@ -43,12 +43,12 @@ export default function AbsurditySlider({ value, onChange, disabled }: Absurdity
         <div className="relative h-1 bg-white/5 rounded-full mt-1">
           <div
             className="absolute h-full bg-gradient-to-r from-white/20 to-white/60 rounded-full transition-all"
-            style={{ width: `${((value - 1) / 4) * 100}%` }}
+            style={{ width: `${(value / 5) * 100}%` }}
           />
         </div>
 
         <div className="flex justify-between mt-2 text-xs text-white/30">
-          <span>Mild</span>
+          <span>Factual</span>
           <span>Fever Dream</span>
         </div>
       </div>
