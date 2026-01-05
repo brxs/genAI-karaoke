@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createGeminiClient, generateImage } from "@/lib/gemini";
+import { createGeminiClient, generateImage, ImageSize, AspectRatio } from "@/lib/gemini";
 import { STYLES, SlideStyle } from "@/lib/styles";
+
+const DEFAULT_ASPECT_RATIO: AspectRatio = "16:9";
+const DEFAULT_IMAGE_SIZE: ImageSize = "2K";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { prompt, slideIndex, style, customStylePrompt } = await request.json();
+    const { prompt, slideIndex, style, customStylePrompt, aspectRatio, imageSize } = await request.json();
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
@@ -34,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Get style prompt - use custom prompt if style is "custom", otherwise use predefined style
     let stylePrompt: string;
     if (style === "custom" && customStylePrompt) {
-      stylePrompt = `${customStylePrompt}, 16:9 aspect ratio, high quality text rendering`;
+      stylePrompt = `${customStylePrompt}, high quality text rendering`;
     } else {
       const styleConfig = STYLES[style as SlideStyle] || STYLES.corporate;
       stylePrompt = styleConfig.prompt;
@@ -43,7 +46,12 @@ export async function POST(request: NextRequest) {
     // Enhance prompt with the selected style
     const enhancedPrompt = `${prompt}. ${stylePrompt}`;
 
-    const imageBase64 = await generateImage(client, enhancedPrompt);
+    const imageBase64 = await generateImage(
+      client,
+      enhancedPrompt,
+      aspectRatio || DEFAULT_ASPECT_RATIO,
+      imageSize || DEFAULT_IMAGE_SIZE
+    );
 
     return NextResponse.json({
       imageBase64,

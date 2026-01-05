@@ -1,5 +1,6 @@
 export type { SlideStyle } from "./styles";
 export type { AbsurdityLevel } from "./absurdity";
+export type { ImageSize, AspectRatio } from "./gemini";
 
 export interface Slide {
   slideNumber: number;
