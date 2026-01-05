@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import type { TObject } from "@sinclair/typebox";
 
 export function createGeminiClient(apiKey: string) {
   return new GoogleGenAI({ apiKey });
@@ -21,6 +22,31 @@ export async function generateText(
     throw new Error("No text response from Gemini");
   }
   return text;
+}
+
+export async function generateStructuredOutput<T>(
+  client: GoogleGenAI,
+  systemPrompt: string,
+  userPrompt: string,
+  schema: TObject
+): Promise<T> {
+  const response = await client.models.generateContent({
+    model: "gemini-2.5-pro",
+    contents: [
+      { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
+    ],
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: schema,
+    },
+  });
+
+  const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error("No text response from Gemini");
+  }
+
+  return JSON.parse(text) as T;
 }
 
 export type ImageSize = "1K" | "2K" | "4K";

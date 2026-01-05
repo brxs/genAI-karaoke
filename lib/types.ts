@@ -36,15 +36,5 @@ export interface GenerationState {
   error?: string;
 }
 
-export interface OutlineSlide {
-  title: string;
-  bulletPoints: string[];
-}
-
-export interface OutlineResponse {
-  slides: OutlineSlide[];
-}
-
-export interface ImagePromptResponse {
-  imagePrompts: string[];
-}
+// Re-export schema types for backward compatibility
+export type { OutlineSlide, OutlineResponse, ImagePromptResponse } from "./schemas";

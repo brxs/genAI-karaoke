@@ -15,19 +15,21 @@ Content style:
 
 Each slide should have:
 - A punchy, funny title (5-10 words)
-- Bullet points (each 5-15 words)
+- Bullet points (each 5-15 words) that are "performable":
+  - Statements that beg for explanation ("This is why dolphins can't be trusted")
+  - Setups the presenter can improvise punchlines for
+  - Bold claims that demand a straight-faced delivery
+  - Questions or audience callouts ("Raise your hand if you've ever...")
+  - Avoid complete jokes - leave room for the presenter to land them
+  - Never start bullet points with bullet characters (-, •, *, etc.) - just the text
 
-Slide structure:
-- First slide: Hook them with something absurd
-- Middle slides: Escalate the chaos with wilder claims
-- Last slide: A ridiculous "conclusion" or dramatic mic-drop moment
+Story arc structure:
+- Opening: Hook with a bold, absurd claim or question that sets up the premise
+- Rising action: Build the narrative with increasingly wild "evidence," complications, or revelations
+- Climax: The most ridiculous moment - a shocking twist, outrageous conclusion, or peak absurdity
+- Resolution: A memorable closer - call to action, fake wisdom, or dramatic mic-drop
 
-Return ONLY valid JSON in this exact format (no markdown, no code blocks):
-{
-  "slides": [
-    { "title": "Your Slide Title", "bulletPoints": ["Point 1", "Point 2", "Point 3"] }
-  ]
-}`;
+Each slide should logically (or illogically) connect to the next, creating a cohesive narrative thread the presenter can follow.`;
 
 export const IMAGE_PROMPT_SYSTEM_PROMPT = `Generate image prompts for presentation slides. You will receive slides with titles and bullet points.
 
@@ -39,13 +41,5 @@ For each slide, create a prompt that generates an ACTUAL PRESENTATION SLIDE with
 - Vibrant colors and playful visual elements
 
 The prompt should instruct the AI to render the EXACT text provided on a visually striking slide.
-
-Return ONLY valid JSON in this exact format (no markdown, no code blocks):
-{
-  "imagePrompts": [
-    "Create a presentation slide with title '...' and bullet points: ...",
-    ...
-  ]
-}
 
 Generate exactly one prompt for each slide provided, in order.`;

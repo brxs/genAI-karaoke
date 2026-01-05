@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createGeminiClient, generateText, parseJsonResponse } from "@/lib/gemini";
+import { createGeminiClient, generateStructuredOutput } from "@/lib/gemini";
 import { OUTLINE_SYSTEM_PROMPT } from "@/lib/prompts";
-import { OutlineResponse } from "@/lib/types";
+import { OutlineResponseSchema, type OutlineResponse } from "@/lib/schemas";
 import { AbsurdityLevel, getAbsurdityConfig } from "@/lib/absurdity";
 
 export async function POST(request: NextRequest) {
@@ -33,8 +33,12 @@ export async function POST(request: NextRequest) {
     const enhancedSystemPrompt = `${OUTLINE_SYSTEM_PROMPT}${bulletPointsInstruction}${slideCountInstruction}\n\nAbsurdity level: ${absurdityConfig.name}\n${absurdityConfig.promptModifier}`;
     const userPrompt = `Create a hilarious ${slideCount}-slide presentation about: "${topic}"`;
 
-    const responseText = await generateText(client, enhancedSystemPrompt, userPrompt);
-    const outline = parseJsonResponse<OutlineResponse>(responseText);
+    const outline = await generateStructuredOutput<OutlineResponse>(
+      client,
+      enhancedSystemPrompt,
+      userPrompt,
+      OutlineResponseSchema
+    );
 
     // Validate response structure
     if (!outline.slides || !Array.isArray(outline.slides) || outline.slides.length !== slideCount) {

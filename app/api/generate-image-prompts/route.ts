@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createGeminiClient, generateText, parseJsonResponse } from "@/lib/gemini";
+import { createGeminiClient, generateStructuredOutput } from "@/lib/gemini";
 import { IMAGE_PROMPT_SYSTEM_PROMPT } from "@/lib/prompts";
-import { OutlineSlide, ImagePromptResponse } from "@/lib/types";
+import { ImagePromptResponseSchema, type ImagePromptResponse, type OutlineSlide } from "@/lib/schemas";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,8 +34,12 @@ export async function POST(request: NextRequest) {
 
     const userPrompt = `Generate image prompts for these presentation slides:\n\n${slidesDescription}`;
 
-    const responseText = await generateText(client, IMAGE_PROMPT_SYSTEM_PROMPT, userPrompt);
-    const result = parseJsonResponse<ImagePromptResponse>(responseText);
+    const result = await generateStructuredOutput<ImagePromptResponse>(
+      client,
+      IMAGE_PROMPT_SYSTEM_PROMPT,
+      userPrompt,
+      ImagePromptResponseSchema
+    );
 
     // Validate response structure
     if (!result.imagePrompts || !Array.isArray(result.imagePrompts) || result.imagePrompts.length !== slides.length) {
