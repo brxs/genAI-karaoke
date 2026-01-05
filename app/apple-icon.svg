@@ -1,13 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
-  <rect width="180" height="180" rx="40" fill="#000"/>
-  <rect x="28" y="40" width="124" height="84" rx="8" fill="none" stroke="url(#grad)" stroke-width="6"/>
-  <circle cx="90" cy="82" r="16" fill="url(#grad)"/>
-  <path d="M68 150h44" stroke="url(#grad)" stroke-width="6" stroke-linecap="round"/>
-  <path d="M90 124v26" stroke="url(#grad)" stroke-width="6" stroke-linecap="round"/>
-  <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fff"/>
-      <stop offset="100%" stop-color="#888"/>
-    </linearGradient>
-  </defs>
+  <rect width="180" height="180" fill="#000"/>
+  <g transform="translate(10, 25) scale(0.4)">
+    <path d="M 40 190 Q 70 250 150 260 Q 230 265 310 210 Q 370 160 385 90 Q 390 65 370 60 Q 350 70 330 100 Q 270 175 190 185 Q 110 190 60 145 Q 40 130 40 190 Z" fill="#ffc107"/>
+    <path d="M 370 60 Q 365 45 355 35 Q 350 30 355 25 Q 365 22 375 30 Q 385 42 390 60 Q 390 65 370 60 Z" fill="#7d5a29"/>
+    <path d="M 50 175 Q 120 220 200 220 Q 290 215 355 155 Q 370 135 378 100" fill="none" stroke-width="5" stroke="#6b4d25"/>
+  </g>
 </svg>

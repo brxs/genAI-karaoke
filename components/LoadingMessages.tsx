@@ -4,22 +4,22 @@ import { useState, useEffect, useMemo } from "react";
 import { SlideStyle } from "@/lib/styles";
 
 const GENERIC_MESSAGES = [
-  "Cooking up something ridiculous...",
+  "Peeling the banana of knowledge...",
+  "Going bananas with your slides...",
   "Consulting the chaos gremlins...",
   "Asking the rubber duck for advice...",
   "Teaching pigeons PowerPoint...",
   "Polishing the nonsense...",
   "Calibrating absurdity levels...",
   "Brewing chaotic energy...",
-  "Asking a raccoon for bullet points...",
-  "Downloading more ridiculous...",
+  "This banana has no chill...",
   "Generating plausible nonsense...",
   "Inventing fake statistics...",
   "Assembling the chaos...",
-  "Consulting ancient memes...",
+  "Slipping on purpose...",
   "Waking up the slide hamsters...",
   "Mixing metaphors aggressively...",
-  "Loading premium nonsense...",
+  "Ripening your presentation...",
 ];
 
 const STYLE_MESSAGES: Partial<Record<SlideStyle, string[]>> = {

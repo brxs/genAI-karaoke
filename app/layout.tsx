@@ -13,20 +13,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Presentation Karaoke - AI-Powered Improv Party Game",
+  title: "Banana.ppt - AI-Powered Improv Slides",
   description: "Generate absurd AI presentations on any topic and present them with a straight face. The ultimate party game where you present slides you've never seen before.",
-  keywords: ["presentation karaoke", "party game", "AI presentations", "improv game", "powerpoint karaoke", "slide karaoke"],
-  authors: [{ name: "Presentation Karaoke" }],
+  keywords: ["banana.ppt", "presentation karaoke", "party game", "AI presentations", "improv game", "powerpoint karaoke", "slide karaoke"],
+  authors: [{ name: "Banana.ppt" }],
   openGraph: {
-    title: "Presentation Karaoke",
+    title: "Banana.ppt",
     description: "Present slides you've never seen before. AI generates absurd presentations, you try to keep a straight face.",
     type: "website",
     locale: "en_US",
-    siteName: "Presentation Karaoke",
+    siteName: "Banana.ppt",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Presentation Karaoke",
+    title: "Banana.ppt",
     description: "Present slides you've never seen before. AI generates absurd presentations, you try to keep a straight face.",
   },
   robots: {

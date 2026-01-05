@@ -8,6 +8,8 @@ import LoadingMessages from "@/components/LoadingMessages";
 import GridView from "@/components/GridView";
 import SlideshowView from "@/components/SlideshowView";
 import ViewToggle from "@/components/ViewToggle";
+import BananaRain from "@/components/BananaRain";
+import BananaConfetti from "@/components/BananaConfetti";
 import { usePresentation } from "@/hooks/usePresentation";
 import { downloadAllSlides } from "@/lib/download";
 import { SlideStyle, AbsurdityLevel } from "@/lib/types";
@@ -20,6 +22,7 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<"grid" | "slideshow">("grid");
   const [slideshowIndex, setSlideshowIndex] = useState(0);
   const [currentStyle, setCurrentStyle] = useState<SlideStyle | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const { presentation, generationState, generatePresentation, resetPresentation, regenerateSlideImage } =
     usePresentation();
@@ -30,16 +33,19 @@ export default function Home() {
         const res = await fetch("/api/check-api-key");
         const data = await res.json();
         setHasApiKey(data.hasApiKey);
-        if (!data.hasApiKey) {
-          setShowApiKeyModal(true);
-        }
       } catch {
         setHasApiKey(false);
-        setShowApiKeyModal(true);
       }
     };
     checkApiKey();
   }, []);
+
+  // Trigger confetti when generation completes
+  useEffect(() => {
+    if (generationState.status === "complete") {
+      setShowConfetti(true);
+    }
+  }, [generationState.status]);
 
   const handleApiKeySave = () => {
     setHasApiKey(true);
@@ -91,10 +97,15 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
             onClick={handleNewPresentation}
-            className="text-left hover:opacity-80 transition-opacity"
+            className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
           >
-            <h1 className="text-xl font-semibold text-white">Presentation Karaoke</h1>
-            <p className="text-xs text-white/40">AI-powered party game</p>
+            <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+              <img src="/banana.svg" alt="" className="w-7 h-7" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-white">Banana.ppt</h1>
+              <p className="text-xs text-white/40">AI-powered improv slides</p>
+            </div>
           </button>
           <button
             onClick={() => setShowApiKeyModal(true)}
@@ -111,7 +122,7 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center min-h-[70vh]">
             <div className="text-center mb-10">
               <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-white/5 text-white/50 text-sm font-medium border border-white/10">
-                The Ultimate Improv Game
+                The Ultimate Improv Game 🍌
               </div>
               <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
                 Present slides you&apos;ve
@@ -130,8 +141,9 @@ export default function Home() {
 
         {/* Generation progress */}
         {isGenerating && !showPresentation && (
-          <div className="flex flex-col items-center justify-center min-h-[70vh]">
-            <div className="mb-8 text-center">
+          <div className="flex flex-col items-center justify-center min-h-[70vh] relative">
+            <BananaRain />
+            <div className="mb-8 text-center relative z-10">
               <LoadingMessages style={presentation?.style ?? currentStyle ?? undefined} />
               <p className="text-white/40">This usually takes about 30 seconds</p>
             </div>
@@ -212,10 +224,13 @@ export default function Home() {
         )}
       </main>
 
+      {/* Banana confetti on completion */}
+      {showConfetti && <BananaConfetti onComplete={() => setShowConfetti(false)} />}
+
       {/* Footer */}
       <footer className="border-t border-white/5 mt-auto">
         <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-white/30">
-          <span>Powered by Gemini. Your API key is never stored outside your browser.</span>
+          <span>Powered by Gemini 🍌 Your API key is never stored outside your browser.</span>
           <span className="hidden sm:inline text-white/20">•</span>
           <div className="flex items-center gap-3">
             <a
