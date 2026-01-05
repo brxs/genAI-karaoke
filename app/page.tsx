@@ -11,7 +11,7 @@ import ViewToggle from "@/components/ViewToggle";
 import BananaRain from "@/components/BananaRain";
 import BananaConfetti from "@/components/BananaConfetti";
 import { usePresentation } from "@/hooks/usePresentation";
-import { downloadAllSlides } from "@/lib/download";
+import { downloadAllSlides, downloadAsPDF } from "@/lib/download";
 import { SlideStyle, AbsurdityLevel } from "@/lib/types";
 import { BulletPointsCount } from "@/components/BulletPointsSlider";
 import { SlideCount } from "@/components/SlideCountSlider";
@@ -196,7 +196,16 @@ export default function Home() {
                   onRetrySlide={regenerateSlideImage}
                 />
                 {presentation.slides.some((s) => s.imageBase64) && (
-                  <div className="flex justify-center mt-8">
+                  <div className="flex justify-center gap-3 mt-8">
+                    <button
+                      onClick={() => downloadAsPDF(presentation.slides, presentation.topic)}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-white/[0.03] border border-white/10 text-white/70 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all text-sm font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      Download PDF
+                    </button>
                     <button
                       onClick={() => downloadAllSlides(presentation.slides, presentation.topic)}
                       className="flex items-center gap-2 px-5 py-2.5 bg-white/[0.03] border border-white/10 text-white/70 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all text-sm font-medium"
@@ -204,7 +213,7 @@ export default function Home() {
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
-                      Download All Slides
+                      Download ZIP
                     </button>
                   </div>
                 )}

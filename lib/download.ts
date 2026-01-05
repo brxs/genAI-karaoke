@@ -42,6 +42,33 @@ export async function downloadAllSlides(slides: Slide[], topic: string): Promise
   URL.revokeObjectURL(link.href);
 }
 
+export async function downloadAsPDF(slides: Slide[], topic: string): Promise<void> {
+  const slidesWithImages = slides.filter((s) => s.imageBase64);
+
+  if (slidesWithImages.length === 0) return;
+
+  const jsPDF = (await import("jspdf")).default;
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: [1920, 1080],
+  });
+
+  slidesWithImages.forEach((slide, index) => {
+    if (index > 0) pdf.addPage();
+    pdf.addImage(
+      `data:image/png;base64,${slide.imageBase64}`,
+      "PNG",
+      0,
+      0,
+      1920,
+      1080
+    );
+  });
+
+  pdf.save(`${sanitizeFilename(topic)}-slides.pdf`);
+}
+
 function sanitizeFilename(name: string): string {
   return name
     .toLowerCase()
