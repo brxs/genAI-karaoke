@@ -118,7 +118,7 @@ export function usePresentation() {
               prompt: allImagePrompts[slideIndex],
               slideIndex,
               style,
-              customStylePrompt,
+              customStylePrompt: style === "custom" ? customStylePrompt : undefined,
             }),
             signal,
           });
@@ -247,7 +247,7 @@ export function usePresentation() {
           prompt: slide.imagePrompt,
           slideIndex,
           style: presentation.style,
-          customStylePrompt: presentation.customStylePrompt,
+          customStylePrompt: presentation.style === "custom" ? presentation.customStylePrompt : undefined,
         }),
       });
 
@@ -350,6 +350,18 @@ export function usePresentation() {
     return newSlideIndex;
   }, []);
 
+  // Update presentation settings (style, absurdity, customStylePrompt)
+  const updateSettings = useCallback((updates: {
+    style?: SlideStyle;
+    absurdity?: AbsurdityLevel;
+    customStylePrompt?: string;
+  }) => {
+    setPresentation((prev) => {
+      if (!prev) return null;
+      return { ...prev, ...updates };
+    });
+  }, []);
+
   // Regenerate image prompt and image for a specific slide
   const regenerateSlideWithNewPrompt = useCallback(async (slideIndex: number) => {
     if (!presentation) return;
@@ -411,7 +423,7 @@ export function usePresentation() {
           prompt: imagePrompt,
           slideIndex,
           style: presentation.style,
-          customStylePrompt: presentation.customStylePrompt,
+          customStylePrompt: presentation.style === "custom" ? presentation.customStylePrompt : undefined,
         }),
       });
 
@@ -458,6 +470,7 @@ export function usePresentation() {
     deleteSlide,
     reorderSlides,
     addSlide,
+    updateSettings,
     regenerateSlideWithNewPrompt,
   };
 }

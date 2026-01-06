@@ -22,10 +22,13 @@ Each suggestion should have:
 Make the suggestions varied - offer different angles, perspectives, or subtopics that would complement the existing presentation. Keep the tone fun and engaging.`;
 
 export async function POST(request: NextRequest) {
+  console.log("[generate-slide-suggestions] POST request received");
+
   try {
     const apiKey = request.cookies.get("google_ai_api_key")?.value;
 
     if (!apiKey) {
+      console.log("[generate-slide-suggestions] No API key found");
       return NextResponse.json(
         { error: "API key not found. Please set your API key first." },
         { status: 401 }
@@ -34,7 +37,13 @@ export async function POST(request: NextRequest) {
 
     const { topic, existingTitles } = await request.json();
 
+    console.log("[generate-slide-suggestions] Request params:", {
+      topic,
+      existingTitlesCount: existingTitles?.length || 0
+    });
+
     if (!topic) {
+      console.log("[generate-slide-suggestions] Missing topic");
       return NextResponse.json(
         { error: "Topic is required" },
         { status: 400 }
@@ -49,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     const userPrompt = `Generate 3 slide suggestions for a presentation about: "${topic}"${existingContext}`;
 
+    console.log("[generate-slide-suggestions] Calling Gemini API...");
     const result = await generateStructuredOutput<SlideSuggestionsResponse>(
       client,
       SLIDE_SUGGESTIONS_SYSTEM_PROMPT,
@@ -57,15 +67,22 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.suggestions || result.suggestions.length !== 3) {
+      console.log("[generate-slide-suggestions] Invalid response format:", {
+        hasSuggestions: !!result.suggestions,
+        count: result.suggestions?.length
+      });
       return NextResponse.json(
         { error: "Invalid suggestions format received" },
         { status: 500 }
       );
     }
 
+    console.log("[generate-slide-suggestions] Successfully generated suggestions:",
+      result.suggestions.map(s => s.title)
+    );
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Slide suggestions generation error:", error);
+    console.error("[generate-slide-suggestions] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate suggestions" },
       { status: 500 }

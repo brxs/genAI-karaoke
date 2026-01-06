@@ -8,6 +8,7 @@ import LoadingMessages from "@/components/LoadingMessages";
 import GridView from "@/components/GridView";
 import SlideshowView from "@/components/SlideshowView";
 import SlideEditModal from "@/components/SlideEditModal";
+import PresentationSettings from "@/components/PresentationSettings";
 import ViewToggle from "@/components/ViewToggle";
 import BananaRain from "@/components/BananaRain";
 import BananaConfetti from "@/components/BananaConfetti";
@@ -37,6 +38,7 @@ export default function Home() {
     deleteSlide,
     reorderSlides,
     addSlide,
+    updateSettings,
     regenerateSlideWithNewPrompt,
   } = usePresentation();
 
@@ -71,11 +73,6 @@ export default function Home() {
 
   const handleSlideClick = (index: number) => {
     setEditingSlideIndex(index);
-  };
-
-  const handleStartPresentation = () => {
-    setSlideshowIndex(0);
-    setCurrentView("slideshow");
   };
 
   const handleSlideUpdate = (slideIndex: number, updates: { title: string; bulletPoints: string[] }) => {
@@ -217,16 +214,6 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <ViewToggle currentView={currentView} onToggle={setCurrentView} />
                 <button
-                  onClick={handleStartPresentation}
-                  className="px-5 py-2.5 text-white rounded-xl transition-all duration-150 text-sm font-medium hover:scale-105 active:scale-95"
-                  style={{
-                    background: "linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%)",
-                    boxShadow: "0 3px 0 #4c1d95, 0 4px 12px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
-                  }}
-                >
-                  Present
-                </button>
-                <button
                   onClick={handleNewPresentation}
                   className="px-5 py-2.5 text-black rounded-xl transition-all duration-150 text-sm font-bold hover:scale-105 active:scale-95"
                   style={{
@@ -252,6 +239,17 @@ export default function Home() {
                   onReorderSlides={reorderSlides}
                   onAddSlide={handleAddSlide}
                 />
+
+                {/* Presentation Settings */}
+                <PresentationSettings
+                  style={presentation.style}
+                  absurdity={presentation.absurdity}
+                  customStylePrompt={presentation.customStylePrompt}
+                  onStyleChange={(style) => updateSettings({ style })}
+                  onAbsurdityChange={(absurdity) => updateSettings({ absurdity })}
+                  onCustomStylePromptChange={(customStylePrompt) => updateSettings({ customStylePrompt })}
+                />
+
                 {presentation.slides.some((s) => s.imageBase64) && (
                   <div className="flex justify-center gap-3 mt-8">
                     <button
