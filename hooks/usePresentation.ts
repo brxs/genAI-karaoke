@@ -362,6 +362,32 @@ export function usePresentation() {
     });
   }, []);
 
+  // Create a blank presentation with just a title slide
+  const createBlankPresentation = useCallback((title: string) => {
+    // Abort any existing generation
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    const titleSlide: Slide = {
+      slideNumber: 0,
+      title,
+      bulletPoints: [],
+      isTitleSlide: true,
+    };
+
+    setPresentation({
+      topic: title,
+      style: "corporate",
+      absurdity: 3,
+      slides: [titleSlide],
+      createdAt: new Date(),
+    });
+
+    setGenerationState({ status: "complete", totalSlides: 1 });
+  }, []);
+
   // Regenerate image prompt and image for a specific slide
   const regenerateSlideWithNewPrompt = useCallback(async (slideIndex: number) => {
     if (!presentation) return;
@@ -471,6 +497,7 @@ export function usePresentation() {
     reorderSlides,
     addSlide,
     updateSettings,
+    createBlankPresentation,
     regenerateSlideWithNewPrompt,
   };
 }

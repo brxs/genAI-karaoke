@@ -26,6 +26,8 @@ export default function Home() {
   const [currentStyle, setCurrentStyle] = useState<SlideStyle | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
+  const [showBlankModal, setShowBlankModal] = useState(false);
+  const [blankTitle, setBlankTitle] = useState("");
 
   const {
     presentation,
@@ -39,6 +41,7 @@ export default function Home() {
     reorderSlides,
     addSlide,
     updateSettings,
+    createBlankPresentation,
     regenerateSlideWithNewPrompt,
   } = usePresentation();
 
@@ -124,6 +127,58 @@ export default function Home() {
         onClear={() => setHasApiKey(false)}
       />
 
+      {/* Blank Presentation Modal */}
+      {showBlankModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">New Presentation</h3>
+            <input
+              type="text"
+              placeholder="Presentation title..."
+              value={blankTitle}
+              onChange={(e) => setBlankTitle(e.target.value)}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 mb-4 focus:outline-none focus:border-white/30"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && blankTitle.trim()) {
+                  createBlankPresentation(blankTitle.trim());
+                  setBlankTitle("");
+                  setShowBlankModal(false);
+                }
+                if (e.key === "Escape") {
+                  setBlankTitle("");
+                  setShowBlankModal(false);
+                }
+              }}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setBlankTitle("");
+                  setShowBlankModal(false);
+                }}
+                className="flex-1 px-4 py-2 text-white/50 hover:text-white rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (blankTitle.trim()) {
+                    createBlankPresentation(blankTitle.trim());
+                    setBlankTitle("");
+                    setShowBlankModal(false);
+                  }
+                }}
+                disabled={!blankTitle.trim()}
+                className="flex-1 px-4 py-2 bg-white text-black rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/90 transition-colors"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-white/5 backdrop-blur-xl bg-white/[0.02]">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -139,12 +194,23 @@ export default function Home() {
               <p className="text-xs text-white/40">AI-powered improv slides</p>
             </div>
           </button>
-          <button
-            onClick={() => setShowApiKeyModal(true)}
-            className="px-4 py-2 text-sm text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-all border border-transparent hover:border-white/10"
-          >
-            {hasApiKey ? "API Key" : "Set API Key"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowApiKeyModal(true)}
+              className="px-4 py-2 text-sm text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-all border border-transparent hover:border-white/10"
+            >
+              {hasApiKey ? "API Key" : "Set API Key"}
+            </button>
+            <button
+              onClick={() => setShowBlankModal(true)}
+              className="px-4 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all border border-white/10 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New
+            </button>
+          </div>
         </div>
       </header>
 
@@ -154,17 +220,17 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center min-h-[70vh]">
             <div className="text-center mb-10">
               <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-white/5 text-white/50 text-sm font-medium border border-white/10">
-                The Ultimate Improv Game 🍌
+                AI-Powered Slides 🍌
               </div>
               <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                Present slides you&apos;ve
+                Create presentations
                 <br />
                 <span className="bg-gradient-to-r from-white via-white/80 to-white/60 text-transparent bg-clip-text">
-                  never seen before
+                  in seconds
                 </span>
               </h2>
               <p className="text-xl text-white/40 max-w-xl mx-auto">
-                Enter any topic. AI generates absurd slides. You present them with a straight face. Hilarity ensues.
+                Generate a full deck from any topic, or start from scratch and build your own.
               </p>
             </div>
             <TopicForm onSubmit={handleSubmit} isLoading={isGenerating} hasApiKey={hasApiKey ?? false} onSetApiKey={() => setShowApiKeyModal(true)} />
