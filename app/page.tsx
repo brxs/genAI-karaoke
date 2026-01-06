@@ -97,9 +97,19 @@ export default function Home() {
   };
 
   const handleNewPresentation = () => {
+    if (presentation && !confirm("Start a new presentation? Your current work will be lost.")) {
+      return;
+    }
     resetPresentation();
     setCurrentView("grid");
     setSlideshowIndex(0);
+  };
+
+  const handleOpenBlankModal = () => {
+    if (presentation && !confirm("Start a new presentation? Your current work will be lost.")) {
+      return;
+    }
+    setShowBlankModal(true);
   };
 
   const isGenerating =
@@ -202,7 +212,7 @@ export default function Home() {
               {hasApiKey ? "API Key" : "Set API Key"}
             </button>
             <button
-              onClick={() => setShowBlankModal(true)}
+              onClick={handleOpenBlankModal}
               className="px-4 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all border border-white/10 flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
