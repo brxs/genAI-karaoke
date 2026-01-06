@@ -7,6 +7,7 @@ import GenerationProgress from "@/components/GenerationProgress";
 import LoadingMessages from "@/components/LoadingMessages";
 import GridView from "@/components/GridView";
 import SlideshowView from "@/components/SlideshowView";
+import SlideEditModal from "@/components/SlideEditModal";
 import ViewToggle from "@/components/ViewToggle";
 import BananaRain from "@/components/BananaRain";
 import BananaConfetti from "@/components/BananaConfetti";
@@ -23,9 +24,21 @@ export default function Home() {
   const [slideshowIndex, setSlideshowIndex] = useState(0);
   const [currentStyle, setCurrentStyle] = useState<SlideStyle | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
 
-  const { presentation, generationState, generatePresentation, resetPresentation, regenerateSlideImage } =
-    usePresentation();
+  const {
+    presentation,
+    generationState,
+    regeneratingSlide,
+    generatePresentation,
+    resetPresentation,
+    regenerateSlideImage,
+    updateSlide,
+    deleteSlide,
+    reorderSlides,
+    addSlide,
+    regenerateSlideWithNewPrompt,
+  } = usePresentation();
 
   useEffect(() => {
     const checkApiKey = async () => {
@@ -57,8 +70,30 @@ export default function Home() {
   };
 
   const handleSlideClick = (index: number) => {
-    setSlideshowIndex(index);
+    setEditingSlideIndex(index);
+  };
+
+  const handleStartPresentation = () => {
+    setSlideshowIndex(0);
     setCurrentView("slideshow");
+  };
+
+  const handleSlideUpdate = (slideIndex: number, updates: { title: string; bulletPoints: string[] }) => {
+    updateSlide(slideIndex, updates);
+  };
+
+  const handleSlideDelete = (slideIndex: number) => {
+    if (confirm("Are you sure you want to delete this slide?")) {
+      deleteSlide(slideIndex);
+    }
+  };
+
+  const handleAddSlide = () => {
+    const newIndex = addSlide();
+    // Open the edit modal for the new slide
+    if (newIndex >= 0 && presentation) {
+      setEditingSlideIndex(presentation.slides.length); // Will be the new slide
+    }
   };
 
   const handleNewPresentation = () => {
@@ -182,6 +217,16 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <ViewToggle currentView={currentView} onToggle={setCurrentView} />
                 <button
+                  onClick={handleStartPresentation}
+                  className="px-5 py-2.5 text-white rounded-xl transition-all duration-150 text-sm font-medium hover:scale-105 active:scale-95"
+                  style={{
+                    background: "linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%)",
+                    boxShadow: "0 3px 0 #4c1d95, 0 4px 12px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
+                  }}
+                >
+                  Present
+                </button>
+                <button
                   onClick={handleNewPresentation}
                   className="px-5 py-2.5 text-black rounded-xl transition-all duration-150 text-sm font-bold hover:scale-105 active:scale-95"
                   style={{
@@ -202,6 +247,10 @@ export default function Home() {
                   topic={presentation.topic}
                   onSlideClick={handleSlideClick}
                   onRetrySlide={regenerateSlideImage}
+                  onDeleteSlide={handleSlideDelete}
+                  onRegenerateSlide={regenerateSlideWithNewPrompt}
+                  onReorderSlides={reorderSlides}
+                  onAddSlide={handleAddSlide}
                 />
                 {presentation.slides.some((s) => s.imageBase64) && (
                   <div className="flex justify-center gap-3 mt-8">
@@ -251,6 +300,22 @@ export default function Home() {
 
       {/* Banana confetti on completion */}
       {showConfetti && <BananaConfetti onComplete={() => setShowConfetti(false)} />}
+
+      {/* Slide Edit Modal */}
+      {presentation && (
+        <SlideEditModal
+          isOpen={editingSlideIndex !== null}
+          slide={editingSlideIndex !== null ? presentation.slides[editingSlideIndex] : null}
+          slideIndex={editingSlideIndex ?? 0}
+          isRegenerating={regeneratingSlide === editingSlideIndex}
+          topic={presentation.topic}
+          existingTitles={presentation.slides.map(s => s.title)}
+          onClose={() => setEditingSlideIndex(null)}
+          onSave={handleSlideUpdate}
+          onRegenerate={regenerateSlideWithNewPrompt}
+          onDelete={handleSlideDelete}
+        />
+      )}
 
       {/* Footer */}
       <footer className="border-t border-white/5 mt-auto">

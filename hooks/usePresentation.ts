@@ -11,6 +11,7 @@ export function usePresentation() {
     status: "idle",
     totalSlides: 7,
   });
+  const [regeneratingSlide, setRegeneratingSlide] = useState<number | null>(null);
 
   // AbortController ref to cancel in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -280,11 +281,183 @@ export function usePresentation() {
     }
   }, [presentation]);
 
+  // Update a slide's content (title and/or bullet points)
+  const updateSlide = useCallback((
+    slideIndex: number,
+    updates: { title?: string; bulletPoints?: string[] }
+  ) => {
+    setPresentation((prev) => {
+      if (!prev) return null;
+      const updatedSlides = [...prev.slides];
+      updatedSlides[slideIndex] = {
+        ...updatedSlides[slideIndex],
+        ...updates,
+      };
+      // Update topic if title slide is edited
+      const newTopic = updates.title && slideIndex === 0 ? updates.title : prev.topic;
+      return { ...prev, topic: newTopic, slides: updatedSlides };
+    });
+  }, []);
+
+  // Delete a slide
+  const deleteSlide = useCallback((slideIndex: number) => {
+    setPresentation((prev) => {
+      if (!prev) return null;
+      // Don't delete title slide
+      if (slideIndex === 0) return prev;
+      const updatedSlides = prev.slides.filter((_, i) => i !== slideIndex);
+      // Renumber slides
+      const renumberedSlides = updatedSlides.map((slide, i) => ({
+        ...slide,
+        slideNumber: slide.isTitleSlide ? 0 : i,
+      }));
+      return { ...prev, slides: renumberedSlides };
+    });
+  }, []);
+
+  // Reorder slides (for drag-and-drop)
+  const reorderSlides = useCallback((fromIndex: number, toIndex: number) => {
+    setPresentation((prev) => {
+      if (!prev) return null;
+      // Don't allow moving title slide
+      if (fromIndex === 0 || toIndex === 0) return prev;
+      const updatedSlides = [...prev.slides];
+      const [movedSlide] = updatedSlides.splice(fromIndex, 1);
+      updatedSlides.splice(toIndex, 0, movedSlide);
+      // Renumber slides (keep title slide as 0)
+      const renumberedSlides = updatedSlides.map((slide, i) => ({
+        ...slide,
+        slideNumber: slide.isTitleSlide ? 0 : i,
+      }));
+      return { ...prev, slides: renumberedSlides };
+    });
+  }, []);
+
+  // Add a new slide
+  const addSlide = useCallback((): number => {
+    let newSlideIndex = -1;
+    setPresentation((prev) => {
+      if (!prev) return null;
+      const newSlide: Slide = {
+        slideNumber: prev.slides.length,
+        title: "New Slide",
+        bulletPoints: ["Add your first point"],
+        isTitleSlide: false,
+      };
+      newSlideIndex = prev.slides.length;
+      return { ...prev, slides: [...prev.slides, newSlide] };
+    });
+    return newSlideIndex;
+  }, []);
+
+  // Regenerate image prompt and image for a specific slide
+  const regenerateSlideWithNewPrompt = useCallback(async (slideIndex: number) => {
+    if (!presentation) return;
+
+    const slide = presentation.slides[slideIndex];
+    if (!slide) return;
+
+    setRegeneratingSlide(slideIndex);
+
+    // Clear existing image to show loading state
+    setPresentation((prev) => {
+      if (!prev) return null;
+      const updatedSlides = [...prev.slides];
+      updatedSlides[slideIndex] = {
+        ...updatedSlides[slideIndex],
+        imagePrompt: undefined,
+        imageBase64: undefined,
+        imageError: undefined,
+      };
+      return { ...prev, slides: updatedSlides };
+    });
+
+    try {
+      // Step 1: Generate new image prompt for this slide
+      const promptRes = await fetch("/api/generate-single-image-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: slide.title,
+          bulletPoints: slide.bulletPoints,
+          isTitleSlide: slide.isTitleSlide,
+          topic: presentation.topic,
+        }),
+      });
+
+      if (!promptRes.ok) {
+        const error = await promptRes.json();
+        throw new Error(error.error || "Failed to generate image prompt");
+      }
+
+      const { imagePrompt } = await promptRes.json();
+
+      // Update slide with new prompt
+      setPresentation((prev) => {
+        if (!prev) return null;
+        const updatedSlides = [...prev.slides];
+        updatedSlides[slideIndex] = {
+          ...updatedSlides[slideIndex],
+          imagePrompt,
+        };
+        return { ...prev, slides: updatedSlides };
+      });
+
+      // Step 2: Generate new image
+      const imageRes = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: imagePrompt,
+          slideIndex,
+          style: presentation.style,
+          customStylePrompt: presentation.customStylePrompt,
+        }),
+      });
+
+      if (!imageRes.ok) {
+        const error = await imageRes.json();
+        throw new Error(error.error || "Failed to generate image");
+      }
+
+      const { imageBase64 } = await imageRes.json();
+
+      setPresentation((prev) => {
+        if (!prev) return null;
+        const updatedSlides = [...prev.slides];
+        updatedSlides[slideIndex] = {
+          ...updatedSlides[slideIndex],
+          imageBase64,
+          imageError: undefined,
+        };
+        return { ...prev, slides: updatedSlides };
+      });
+    } catch (err) {
+      setPresentation((prev) => {
+        if (!prev) return null;
+        const updatedSlides = [...prev.slides];
+        updatedSlides[slideIndex] = {
+          ...updatedSlides[slideIndex],
+          imageError: err instanceof Error ? err.message : "Failed to regenerate",
+        };
+        return { ...prev, slides: updatedSlides };
+      });
+    } finally {
+      setRegeneratingSlide(null);
+    }
+  }, [presentation]);
+
   return {
     presentation,
     generationState,
+    regeneratingSlide,
     generatePresentation,
     resetPresentation,
     regenerateSlideImage,
+    updateSlide,
+    deleteSlide,
+    reorderSlides,
+    addSlide,
+    regenerateSlideWithNewPrompt,
   };
 }

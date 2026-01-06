@@ -52,8 +52,8 @@ export default function SlideCard({ slide, isFullScreen = false, isTrueFullscree
         </span>
       </div>
 
-      {/* Loading indicator or error */}
-      {!slide.imageError && (
+      {/* Loading indicator - only show when image generation is in progress */}
+      {slide.imagePrompt && !slide.imageError && (
         <div className="absolute top-3 right-3">
           <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
         </div>
