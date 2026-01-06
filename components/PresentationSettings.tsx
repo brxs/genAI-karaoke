@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { SlideStyle, STYLE_LIST } from "@/lib/styles";
 import { AbsurdityLevel, ABSURDITY_LEVELS } from "@/lib/absurdity";
 
@@ -21,130 +20,103 @@ export default function PresentationSettings({
   onAbsurdityChange,
   onCustomStylePromptChange,
 }: PresentationSettingsProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const currentAbsurdity = ABSURDITY_LEVELS.find((a) => a.level === absurdity);
   const currentStyle = STYLE_LIST.find((s) => s.id === style);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 mt-8">
       <div className="border border-white/10 rounded-2xl bg-white/[0.02] backdrop-blur-sm overflow-hidden">
-        {/* Header - always visible */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors"
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="text-white/70 font-medium">Presentation Settings</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="px-2 py-0.5 bg-white/5 rounded-lg text-white/50 border border-white/10">
-                {currentStyle?.name || style}
-              </span>
-              <span className="px-2 py-0.5 bg-white/5 rounded-lg text-white/50 border border-white/10">
-                Absurdity: {absurdity}
-              </span>
-            </div>
+        {/* Header */}
+        <div className="px-6 pt-5 pb-4 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-white/70 font-medium">Presentation Settings</span>
+            <span className="text-xs text-white/30 ml-2">Changes apply when you regenerate slides</span>
           </div>
-          <svg
-            className={`w-5 h-5 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        </div>
 
-        {/* Expandable content */}
-        {isExpanded && (
-          <div className="px-6 pb-6 pt-2 border-t border-white/5">
-            <p className="text-xs text-white/40 mb-6">
-              Changes to style and absurdity will apply when you regenerate slides.
+        {/* Content */}
+        <div className="px-6 py-5">
+          {/* Style Picker - Compact Grid */}
+          <div className="mb-6">
+            <p className="text-sm text-white/40 mb-3">Visual Style</p>
+            <div className="grid grid-cols-6 sm:grid-cols-9 gap-2">
+              {STYLE_LIST.map((styleOption) => {
+                const isSelected = style === styleOption.id;
+                return (
+                  <button
+                    key={styleOption.id}
+                    type="button"
+                    onClick={() => onStyleChange(styleOption.id)}
+                    className={`relative flex flex-col items-center p-2 rounded-xl border backdrop-blur-sm transition-all ${
+                      isSelected
+                        ? "border-white/30 bg-white/10"
+                        : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10"
+                    }`}
+                    title={styleOption.name}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-lg bg-gradient-to-br ${styleOption.gradient} flex items-center justify-center text-white`}
+                    >
+                      <StyleIcon icon={styleOption.icon} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-white/30 mt-2">
+              Selected: <span className="text-white/50">{currentStyle?.name}</span>
             </p>
 
-            {/* Style Picker - Compact Grid */}
-            <div className="mb-6">
-              <p className="text-sm text-white/40 mb-3">Visual Style</p>
-              <div className="grid grid-cols-6 sm:grid-cols-9 gap-2">
-                {STYLE_LIST.map((styleOption) => {
-                  const isSelected = style === styleOption.id;
-                  return (
-                    <button
-                      key={styleOption.id}
-                      type="button"
-                      onClick={() => onStyleChange(styleOption.id)}
-                      className={`relative flex flex-col items-center p-2 rounded-xl border backdrop-blur-sm transition-all ${
-                        isSelected
-                          ? "border-white/30 bg-white/10"
-                          : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10"
-                      }`}
-                      title={styleOption.name}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-lg bg-gradient-to-br ${styleOption.gradient} flex items-center justify-center text-white`}
-                      >
-                        <StyleIcon icon={styleOption.icon} />
-                      </div>
-                    </button>
-                  );
-                })}
+            {/* Custom style prompt input */}
+            {style === "custom" && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={customStylePrompt}
+                  onChange={(e) => onCustomStylePromptChange(e.target.value)}
+                  placeholder="Describe your style (e.g., 'Watercolor painting with soft pastels')"
+                  className="w-full px-4 py-2.5 text-sm bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl focus:ring-1 focus:ring-white/30 focus:border-white/20 text-white placeholder-white/30 outline-none transition-all"
+                  maxLength={200}
+                />
               </div>
-              <p className="text-xs text-white/30 mt-2">
-                Selected: <span className="text-white/50">{currentStyle?.name}</span>
+            )}
+          </div>
+
+          {/* Absurdity Level - Compact */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm text-white/40">Absurdity Level</p>
+              <p className="text-sm">
+                <span className="font-medium text-white">{currentAbsurdity?.name}</span>
+                <span className="text-white/40 ml-2">— {currentAbsurdity?.description}</span>
               </p>
-
-              {/* Custom style prompt input */}
-              {style === "custom" && (
-                <div className="mt-3">
-                  <input
-                    type="text"
-                    value={customStylePrompt}
-                    onChange={(e) => onCustomStylePromptChange(e.target.value)}
-                    placeholder="Describe your style (e.g., 'Watercolor painting with soft pastels')"
-                    className="w-full px-4 py-2.5 text-sm bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl focus:ring-1 focus:ring-white/30 focus:border-white/20 text-white placeholder-white/30 outline-none transition-all"
-                    maxLength={200}
-                  />
-                </div>
-              )}
             </div>
-
-            {/* Absurdity Level - Compact */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm text-white/40">Absurdity Level</p>
-                <p className="text-sm">
-                  <span className="font-medium text-white">{currentAbsurdity?.name}</span>
-                  <span className="text-white/40 ml-2">— {currentAbsurdity?.description}</span>
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {ABSURDITY_LEVELS.map((level) => (
-                  <button
-                    key={level.level}
-                    type="button"
-                    onClick={() => onAbsurdityChange(level.level)}
-                    className={`flex-1 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
-                      absurdity === level.level
-                        ? "bg-white text-black"
-                        : "bg-white/[0.03] text-white/40 hover:bg-white/[0.08] hover:text-white/70 border border-white/5"
-                    }`}
-                  >
-                    {level.level}
-                  </button>
-                ))}
-              </div>
-              <div className="flex justify-between mt-2 text-xs text-white/30">
-                <span>Factual</span>
-                <span>Fever Dream</span>
-              </div>
+            <div className="flex gap-2">
+              {ABSURDITY_LEVELS.map((level) => (
+                <button
+                  key={level.level}
+                  type="button"
+                  onClick={() => onAbsurdityChange(level.level)}
+                  className={`flex-1 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
+                    absurdity === level.level
+                      ? "bg-white text-black"
+                      : "bg-white/[0.03] text-white/40 hover:bg-white/[0.08] hover:text-white/70 border border-white/5"
+                  }`}
+                >
+                  {level.level}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-white/30">
+              <span>Factual</span>
+              <span>Fever Dream</span>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
