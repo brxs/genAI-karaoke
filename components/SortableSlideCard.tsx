@@ -12,6 +12,7 @@ interface SortableSlideCardProps {
   onDelete?: () => void;
   onRegenerate?: () => void;
   onDownload?: (e: React.MouseEvent) => void;
+  onPlay?: () => void;
   disabled?: boolean;
 }
 
@@ -22,6 +23,7 @@ export default function SortableSlideCard({
   onDelete,
   onRegenerate,
   onDownload,
+  onPlay,
   disabled = false,
 }: SortableSlideCardProps) {
   const {
@@ -65,6 +67,22 @@ export default function SortableSlideCard({
 
       {/* Right side action buttons */}
       <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
+        {/* Play button - start slideshow from this slide */}
+        {slide.imageBase64 && onPlay && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPlay();
+            }}
+            className="p-2 bg-black/60 backdrop-blur-sm rounded-lg border border-white/10 text-white/50 hover:text-green-400 hover:bg-green-500/20 transition-all"
+            title="Present from here"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+        )}
+
         {/* Delete button - only for non-title slides */}
         {!isTitleSlide && onDelete && (
           <button

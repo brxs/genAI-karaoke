@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { toast } from "sonner";
 import { SlideStyle, STYLE_LIST } from "@/lib/styles";
 import { AbsurdityLevel, ABSURDITY_LEVELS } from "@/lib/absurdity";
 import type { AttachedImage } from "@/lib/types";
@@ -48,7 +49,9 @@ export default function PresentationSettings({
 
     for (const file of filesToProcess) {
       if (file.size > MAX_FILE_SIZE) {
-        alert(`File ${file.name} is too large. Max size is 10MB.`);
+        toast.error("File too large", {
+          description: `${file.name} exceeds the 10MB limit.`,
+        });
         continue;
       }
 

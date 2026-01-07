@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptResponse, SlideStyle, AbsurdityLevel, AttachedImage } from "@/lib/types";
 import { CONCURRENT_IMAGE_REQUESTS } from "@/lib/constants";
 
@@ -212,10 +213,14 @@ export function usePresentation() {
       // Ignore abort errors - they're expected when user cancels
       if (err instanceof Error && err.name === "AbortError") return;
 
+      const errorMessage = err instanceof Error ? err.message : "An error occurred";
+      toast.error("Failed to generate presentation", {
+        description: errorMessage,
+      });
       setGenerationState({
         status: "error",
         totalSlides,
-        error: err instanceof Error ? err.message : "An error occurred",
+        error: errorMessage,
       });
     }
   }, []);
@@ -279,12 +284,16 @@ export function usePresentation() {
         return { ...prev, slides: updatedSlides };
       });
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to generate image";
+      toast.error("Failed to regenerate image", {
+        description: errorMessage,
+      });
       setPresentation((prev) => {
         if (!prev) return null;
         const updatedSlides = [...prev.slides];
         updatedSlides[slideIndex] = {
           ...updatedSlides[slideIndex],
-          imageError: err instanceof Error ? err.message : "Failed to generate image",
+          imageError: errorMessage,
         };
         return { ...prev, slides: updatedSlides };
       });
@@ -485,12 +494,16 @@ export function usePresentation() {
         return { ...prev, slides: updatedSlides };
       });
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to regenerate";
+      toast.error("Failed to regenerate slide", {
+        description: errorMessage,
+      });
       setPresentation((prev) => {
         if (!prev) return null;
         const updatedSlides = [...prev.slides];
         updatedSlides[slideIndex] = {
           ...updatedSlides[slideIndex],
-          imageError: err instanceof Error ? err.message : "Failed to regenerate",
+          imageError: errorMessage,
         };
         return { ...prev, slides: updatedSlides };
       });

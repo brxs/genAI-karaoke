@@ -78,6 +78,11 @@ export default function Home() {
     setEditingSlideIndex(index);
   };
 
+  const handlePlaySlide = (index: number) => {
+    setSlideshowIndex(index);
+    setCurrentView("slideshow");
+  };
+
   const handleSlideUpdate = (slideIndex: number, updates: { title: string; bulletPoints: string[] }) => {
     updateSlide(slideIndex, updates);
   };
@@ -302,6 +307,7 @@ export default function Home() {
                   onRegenerateSlide={regenerateSlideWithNewPrompt}
                   onReorderSlides={reorderSlides}
                   onAddSlide={handleAddSlide}
+                  onPlaySlide={handlePlaySlide}
                 />
 
                 {/* Presentation Settings */}

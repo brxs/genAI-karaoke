@@ -28,6 +28,7 @@ interface GridViewProps {
   onRegenerateSlide?: (index: number) => void;
   onReorderSlides?: (fromIndex: number, toIndex: number) => void;
   onAddSlide?: () => void;
+  onPlaySlide?: (index: number) => void;
 }
 
 export default function GridView({
@@ -39,6 +40,7 @@ export default function GridView({
   onRegenerateSlide,
   onReorderSlides,
   onAddSlide,
+  onPlaySlide,
 }: GridViewProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -90,6 +92,7 @@ export default function GridView({
                 onDelete={onDeleteSlide ? () => onDeleteSlide(index) : undefined}
                 onRegenerate={onRegenerateSlide ? () => onRegenerateSlide(index) : undefined}
                 onDownload={slide.imageBase64 ? (e) => handleDownload(e, slide) : undefined}
+                onPlay={onPlaySlide ? () => onPlaySlide(index) : undefined}
                 disabled={slide.isTitleSlide} // Title slide can't be dragged
               />
             ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import { SlideStyle, DEFAULT_STYLE, STYLE_LIST } from "@/lib/styles";
 import { AbsurdityLevel, DEFAULT_ABSURDITY } from "@/lib/absurdity";
 import type { AttachedImage } from "@/lib/types";
@@ -142,11 +143,17 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
     for (const file of filesToProcess) {
       // Validate file type
       if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        toast.error("Invalid file type", {
+          description: `${file.name} is not a supported image format.`,
+        });
         continue;
       }
 
       // Validate file size
       if (file.size > MAX_FILE_SIZE) {
+        toast.error("File too large", {
+          description: `${file.name} exceeds the 10MB limit.`,
+        });
         continue;
       }
 
