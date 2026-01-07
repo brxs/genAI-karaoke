@@ -2,11 +2,14 @@
 
 import { SlideStyle, STYLE_LIST } from "@/lib/styles";
 import { AbsurdityLevel, ABSURDITY_LEVELS } from "@/lib/absurdity";
+import type { AttachedImage } from "@/lib/types";
 
 interface PresentationSettingsProps {
   style: SlideStyle;
   absurdity: AbsurdityLevel;
   customStylePrompt?: string;
+  context?: string;
+  attachedImages?: AttachedImage[];
   onStyleChange: (style: SlideStyle) => void;
   onAbsurdityChange: (absurdity: AbsurdityLevel) => void;
   onCustomStylePromptChange: (prompt: string) => void;
@@ -16,6 +19,8 @@ export default function PresentationSettings({
   style,
   absurdity,
   customStylePrompt = "",
+  context,
+  attachedImages,
   onStyleChange,
   onAbsurdityChange,
   onCustomStylePromptChange,
@@ -116,6 +121,44 @@ export default function PresentationSettings({
               <span>Fever Dream</span>
             </div>
           </div>
+
+          {/* Context - Read only display */}
+          {context && (
+            <div className="mt-6 pt-6 border-t border-white/5">
+              <p className="text-sm text-white/40 mb-2">Context Used</p>
+              <p className="text-sm text-white/60 bg-white/[0.02] rounded-lg px-3 py-2 border border-white/5">
+                {context.length > 200 ? `${context.slice(0, 200)}...` : context}
+              </p>
+            </div>
+          )}
+
+          {/* Attached Images - Read only display */}
+          {attachedImages && attachedImages.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-white/5">
+              <p className="text-sm text-white/40 mb-3">Reference Images</p>
+              <div className="flex flex-wrap gap-2">
+                {attachedImages.map((image, index) => (
+                  <div key={index} className="flex flex-col gap-1">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10">
+                      <img
+                        src={`data:${image.mimeType};base64,${image.data}`}
+                        alt={`Reference ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex gap-0.5 justify-center">
+                      {image.useForContent && (
+                        <span className="px-1 py-0.5 text-[8px] rounded bg-blue-500/30 text-blue-300 border border-blue-500/50">C</span>
+                      )}
+                      {image.useForVisual && (
+                        <span className="px-1 py-0.5 text-[8px] rounded bg-purple-500/30 text-purple-300 border border-purple-500/50">V</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptResponse, SlideStyle, AbsurdityLevel } from "@/lib/types";
+import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptResponse, SlideStyle, AbsurdityLevel, AttachedImage } from "@/lib/types";
 
 const CONCURRENT_IMAGE_REQUESTS = 4;
 
@@ -16,7 +16,7 @@ export function usePresentation() {
   // AbortController ref to cancel in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const generatePresentation = useCallback(async (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: number, slideCount: number, customStylePrompt?: string) => {
+  const generatePresentation = useCallback(async (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: number, slideCount: number, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[]) => {
     // Abort any existing generation
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -36,7 +36,7 @@ export function usePresentation() {
       const outlineRes = await fetch("/api/generate-outline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, absurdity, maxBulletPoints, slideCount }),
+        body: JSON.stringify({ topic, absurdity, maxBulletPoints, slideCount, context, attachedImages }),
         signal,
       });
 
@@ -64,15 +64,21 @@ export function usePresentation() {
 
       const slides: Slide[] = [titleSlide, ...contentSlides];
 
-      setPresentation({ topic, style, absurdity, slides, customStylePrompt, createdAt: new Date() });
+      setPresentation({ topic, style, absurdity, slides, customStylePrompt, context, attachedImages, createdAt: new Date() });
 
       // Step 2: Generate image prompts
       setGenerationState({ status: "generating-prompts", totalSlides });
 
+      // Filter visual images for image prompt generation
+      const visualImages = attachedImages?.filter((img) => img.useForVisual);
+
       const promptsRes = await fetch("/api/generate-image-prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slides: outline.slides }),
+        body: JSON.stringify({
+          slides: outline.slides,
+          visualImages: visualImages && visualImages.length > 0 ? visualImages : undefined,
+        }),
         signal,
       });
 

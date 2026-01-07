@@ -1,5 +1,6 @@
-import { GoogleGenAI, Tool } from "@google/genai";
+import { GoogleGenAI, Tool, Part } from "@google/genai";
 import type { TObject } from "@sinclair/typebox";
+import type { AttachedImage } from "./types";
 
 export function createGeminiClient(apiKey: string) {
   return new GoogleGenAI({ apiKey });
@@ -33,12 +34,28 @@ export async function generateStructuredOutput<T>(
   systemPrompt: string,
   userPrompt: string,
   schema: TObject,
-  options?: { tools?: Tool[] }
+  options?: { tools?: Tool[]; images?: AttachedImage[] }
 ): Promise<T> {
+  // Build parts array - images first (if any), then text
+  const parts: Part[] = [];
+
+  if (options?.images && options.images.length > 0) {
+    for (const image of options.images) {
+      parts.push({
+        inlineData: {
+          data: image.data,
+          mimeType: image.mimeType,
+        },
+      });
+    }
+  }
+
+  parts.push({ text: `${systemPrompt}\n\n${userPrompt}` });
+
   const response = await client.models.generateContent({
     model: "gemini-3-pro-preview",
     contents: [
-      { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
+      { role: "user", parts },
     ],
     config: {
       tools: options?.tools,

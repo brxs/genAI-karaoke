@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createGeminiClient, generateStructuredOutput } from "@/lib/gemini";
 import { IMAGE_PROMPT_SYSTEM_PROMPT } from "@/lib/prompts";
 import { ImagePromptResponseSchema, type ImagePromptResponse, type OutlineSlide } from "@/lib/schemas";
+import type { AttachedImage } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +15,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { slides } = await request.json();
+    const { slides, visualImages } = await request.json() as {
+      slides: OutlineSlide[];
+      visualImages?: AttachedImage[];
+    };
 
-    console.log("[generate-image-prompts] Request params:", { slideCount: slides?.length });
+    console.log("[generate-image-prompts] Request params:", { slideCount: slides?.length, visualImageCount: visualImages?.length || 0 });
 
     if (!slides || !Array.isArray(slides)) {
       return NextResponse.json(
@@ -34,13 +38,18 @@ export async function POST(request: NextRequest) {
       )
       .join("\n\n");
 
-    const userPrompt = `Generate image prompts for these presentation slides:\n\n${slidesDescription}`;
+    let userPrompt = `Generate image prompts for these presentation slides:\n\n${slidesDescription}`;
+
+    if (visualImages && visualImages.length > 0) {
+      userPrompt += `\n\nIMPORTANT: The user has provided ${visualImages.length} reference image(s) for visual style. Analyze the visual style, colors, composition, and aesthetic of these images. Incorporate similar visual elements and style into ALL generated image prompts to maintain visual consistency.`;
+    }
 
     const result = await generateStructuredOutput<ImagePromptResponse>(
       client,
       IMAGE_PROMPT_SYSTEM_PROMPT,
       userPrompt,
-      ImagePromptResponseSchema
+      ImagePromptResponseSchema,
+      { images: visualImages }
     );
 
     // Validate response structure

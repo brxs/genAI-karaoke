@@ -2,6 +2,13 @@ export type { SlideStyle } from "./styles";
 export type { AbsurdityLevel } from "./absurdity";
 export type { ImageSize, AspectRatio } from "./gemini";
 
+export interface AttachedImage {
+  data: string;      // base64 encoded
+  mimeType: string;  // e.g., "image/jpeg", "image/png"
+  useForContent: boolean;  // Use image to inform presentation content
+  useForVisual: boolean;   // Use image as visual style reference
+}
+
 export interface Slide {
   slideNumber: number;
   title: string;
@@ -18,6 +25,8 @@ export interface Presentation {
   absurdity: import("./absurdity").AbsurdityLevel;
   slides: Slide[];
   customStylePrompt?: string;
+  context?: string;
+  attachedImages?: AttachedImage[];
   createdAt: Date;
 }
 

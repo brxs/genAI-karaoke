@@ -14,7 +14,7 @@ import BananaRain from "@/components/BananaRain";
 import BananaConfetti from "@/components/BananaConfetti";
 import { usePresentation } from "@/hooks/usePresentation";
 import { downloadAllSlides, downloadAsPDF } from "@/lib/download";
-import { SlideStyle, AbsurdityLevel } from "@/lib/types";
+import { SlideStyle, AbsurdityLevel, AttachedImage } from "@/lib/types";
 import { BulletPointsCount } from "@/components/BulletPointsSlider";
 import { SlideCount } from "@/components/SlideCountSlider";
 
@@ -69,9 +69,9 @@ export default function Home() {
     setHasApiKey(true);
   };
 
-  const handleSubmit = (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string) => {
+  const handleSubmit = (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[]) => {
     setCurrentStyle(style);
-    generatePresentation(topic, style, absurdity, maxBulletPoints, slideCount, customStylePrompt);
+    generatePresentation(topic, style, absurdity, maxBulletPoints, slideCount, customStylePrompt, context, attachedImages);
   };
 
   const handleSlideClick = (index: number) => {
@@ -321,6 +321,8 @@ export default function Home() {
                   style={presentation.style}
                   absurdity={presentation.absurdity}
                   customStylePrompt={presentation.customStylePrompt}
+                  context={presentation.context}
+                  attachedImages={presentation.attachedImages}
                   onStyleChange={(style) => updateSettings({ style })}
                   onAbsurdityChange={(absurdity) => updateSettings({ absurdity })}
                   onCustomStylePromptChange={(customStylePrompt) => updateSettings({ customStylePrompt })}

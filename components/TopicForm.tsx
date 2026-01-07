@@ -3,17 +3,23 @@
 import { useState, useCallback, useRef } from "react";
 import { SlideStyle, DEFAULT_STYLE, STYLE_LIST } from "@/lib/styles";
 import { AbsurdityLevel, DEFAULT_ABSURDITY } from "@/lib/absurdity";
+import type { AttachedImage } from "@/lib/types";
 import StylePicker from "./StylePicker";
 import AbsurditySlider from "./AbsurditySlider";
 import BulletPointsSlider, { BulletPointsCount, DEFAULT_BULLET_POINTS } from "./BulletPointsSlider";
 import SlideCountSlider, { SlideCount, DEFAULT_SLIDE_COUNT } from "./SlideCountSlider";
 
 interface TopicFormProps {
-  onSubmit: (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string) => void;
+  onSubmit: (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[]) => void;
   isLoading: boolean;
   hasApiKey: boolean;
   onSetApiKey: () => void;
 }
+
+const MAX_CONTEXT_LENGTH = 3000;
+const MAX_IMAGES = 5;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 const EXAMPLE_TOPICS = [
   "Why Your Cat Is Plotting Against You",
@@ -91,8 +97,13 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
   const [bulletPoints, setBulletPoints] = useState<BulletPointsCount>(DEFAULT_BULLET_POINTS);
   const [slideCount, setSlideCount] = useState<SlideCount>(DEFAULT_SLIDE_COUNT);
   const [customPrompt, setCustomPrompt] = useState("");
+  const [context, setContext] = useState("");
+  const [isContextExpanded, setIsContextExpanded] = useState(false);
+  const [isImagesExpanded, setIsImagesExpanded] = useState(false);
+  const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
   const spinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +111,16 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
       if (style === "custom" && !customPrompt.trim()) {
         return; // Don't submit if custom style is selected but no prompt provided
       }
-      onSubmit(topic.trim(), style, absurdity, bulletPoints, slideCount, style === "custom" ? customPrompt.trim() : undefined);
+      onSubmit(
+        topic.trim(),
+        style,
+        absurdity,
+        bulletPoints,
+        slideCount,
+        style === "custom" ? customPrompt.trim() : undefined,
+        context.trim() || undefined,
+        attachedImages.length > 0 ? attachedImages : undefined
+      );
     }
   };
 
@@ -110,6 +130,66 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
 
   const handleRandomTopic = () => {
     setTopic(generateRandomTopic());
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const remainingSlots = MAX_IMAGES - attachedImages.length;
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+
+    const newImages: AttachedImage[] = [];
+
+    for (const file of filesToProcess) {
+      // Validate file type
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        continue;
+      }
+
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        continue;
+      }
+
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix to get just the base64 data
+          const base64Data = result.split(",")[1];
+          resolve(base64Data);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      newImages.push({
+        data: base64,
+        mimeType: file.type,
+        useForContent: true,  // Default: use for content guidance
+        useForVisual: false,  // Default: don't use for visual style
+      });
+    }
+
+    setAttachedImages((prev) => [...prev, ...newImages]);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setAttachedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleToggleImageOption = (index: number, option: "useForContent" | "useForVisual") => {
+    setAttachedImages((prev) =>
+      prev.map((img, i) =>
+        i === index ? { ...img, [option]: !img[option] } : img
+      )
+    );
   };
 
   const handleRoulette = useCallback(() => {
@@ -155,6 +235,10 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
         setBulletPoints(finalBullets);
         setSlideCount(finalSlides);
         setTopic(finalTopic);
+        setContext("");
+        setIsContextExpanded(false);
+        setAttachedImages([]);
+        setIsImagesExpanded(false);
         setIsSpinning(false);
       }
     };
@@ -262,6 +346,149 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
           </svg>
         </button>
+      </div>
+
+      {/* Expandable context section */}
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={() => setIsContextExpanded(!isContextExpanded)}
+          disabled={isLoading || isSpinning}
+          className="flex items-center gap-2 text-sm text-white/40 hover:text-white/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg
+            className={`w-4 h-4 transition-transform ${isContextExpanded ? "rotate-90" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          Add context (optional)
+        </button>
+        {isContextExpanded && (
+          <div className="mt-3">
+            <textarea
+              value={context}
+              onChange={(e) => setContext(e.target.value.slice(0, MAX_CONTEXT_LENGTH))}
+              placeholder="Add details about your audience, key points to cover, or specific angle..."
+              disabled={isLoading || isSpinning}
+              className="w-full px-4 py-3 text-sm bg-white/[0.03] border border-white/10 rounded-xl focus:ring-1 focus:ring-white/30 focus:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-white/30 outline-none transition-all resize-none"
+              rows={3}
+              maxLength={MAX_CONTEXT_LENGTH}
+            />
+            <div className="mt-1 text-right text-xs text-white/30">
+              {context.length} / {MAX_CONTEXT_LENGTH}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Image attachments section */}
+      <div className="mb-4">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ALLOWED_IMAGE_TYPES.join(",")}
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <button
+          type="button"
+          onClick={() => setIsImagesExpanded(!isImagesExpanded)}
+          disabled={isLoading || isSpinning}
+          className="flex items-center gap-2 text-sm text-white/40 hover:text-white/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg
+            className={`w-4 h-4 transition-transform ${isImagesExpanded ? "rotate-90" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          Attach images (optional)
+          {attachedImages.length > 0 && (
+            <span className="text-white/30">
+              ({attachedImages.length}/{MAX_IMAGES})
+            </span>
+          )}
+        </button>
+
+        {/* Expanded image section with previews and add button */}
+        {isImagesExpanded && (
+          <div className="mt-3 flex flex-wrap gap-3">
+            {/* Existing image previews with toggles */}
+            {attachedImages.map((image, index) => (
+              <div key={index} className="flex flex-col gap-1.5">
+                <div className="relative group w-16 h-16 rounded-lg overflow-hidden border border-white/10">
+                  <img
+                    src={`data:${image.mimeType};base64,${image.data}`}
+                    alt={`Attachment ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                {/* Toggle buttons */}
+                <div className="flex gap-1 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleImageOption(index, "useForContent")}
+                    disabled={isLoading || isSpinning}
+                    className={`px-1.5 py-0.5 text-[10px] rounded transition-all disabled:opacity-50 ${
+                      image.useForContent
+                        ? "bg-blue-500/30 text-blue-300 border border-blue-500/50"
+                        : "bg-white/5 text-white/30 border border-white/10 hover:border-white/20"
+                    }`}
+                    title="Use for content guidance"
+                  >
+                    C
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleImageOption(index, "useForVisual")}
+                    disabled={isLoading || isSpinning}
+                    className={`px-1.5 py-0.5 text-[10px] rounded transition-all disabled:opacity-50 ${
+                      image.useForVisual
+                        ? "bg-purple-500/30 text-purple-300 border border-purple-500/50"
+                        : "bg-white/5 text-white/30 border border-white/10 hover:border-white/20"
+                    }`}
+                    title="Use for visual style"
+                  >
+                    V
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Add image button */}
+            {attachedImages.length < MAX_IMAGES && (
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading || isSpinning}
+                  className="w-16 h-16 rounded-lg border border-dashed border-white/20 hover:border-white/40 bg-white/[0.02] hover:bg-white/[0.05] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-6 h-6 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+                {/* Spacer to align with toggle buttons */}
+                <div className="h-[18px]" />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <button

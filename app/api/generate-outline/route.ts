@@ -3,6 +3,7 @@ import { createGeminiClient, generateStructuredOutput } from "@/lib/gemini";
 import { buildOutlineSystemPrompt } from "@/lib/prompts";
 import { OutlineResponseSchema, type OutlineResponse } from "@/lib/schemas";
 import { AbsurdityLevel, getAbsurdityConfig } from "@/lib/absurdity";
+import type { AttachedImage } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,9 +16,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { topic, absurdity = 3, maxBulletPoints = 3, slideCount = 7 } = await request.json();
+    const { topic, absurdity = 3, maxBulletPoints = 3, slideCount = 7, context, attachedImages } = await request.json() as {
+      topic: string;
+      absurdity?: number;
+      maxBulletPoints?: number;
+      slideCount?: number;
+      context?: string;
+      attachedImages?: AttachedImage[];
+    };
 
-    console.log("[generate-outline] Request params:", { topic, absurdity, maxBulletPoints, slideCount });
+    console.log("[generate-outline] Request params:", { topic, absurdity, maxBulletPoints, slideCount, hasContext: !!context, imageCount: attachedImages?.length || 0 });
 
     if (!topic || typeof topic !== "string") {
       return NextResponse.json(
@@ -35,16 +43,32 @@ export async function POST(request: NextRequest) {
     const slideCountInstruction = `\n\nIMPORTANT: Generate exactly ${slideCount} slides total.`;
     const enhancedSystemPrompt = `${basePrompt}${bulletPointsInstruction}${slideCountInstruction}`;
 
-    const userPrompt = absurdity === 0
+    const baseUserPrompt = absurdity === 0
       ? `Create an informative ${slideCount}-slide presentation about: "${topic}"`
       : `Create a hilarious ${slideCount}-slide presentation about: "${topic}"`;
+
+    let userPrompt = baseUserPrompt;
+
+    // Filter images - only content images are used for outline generation
+    const contentImages = attachedImages?.filter((img) => img.useForContent) || [];
+
+    if (contentImages.length > 0) {
+      userPrompt += `\n\nThe user has attached ${contentImages.length} reference image(s). Extract information, data, or topics from these images to inform the presentation content.`;
+    }
+
+    if (context) {
+      userPrompt += `\n\nAdditional context from the user:\n${context}`;
+    }
+
+    // Only pass content images to the model for outline generation
+    const imagesToSend = contentImages.length > 0 ? contentImages : undefined;
 
     const outline = await generateStructuredOutput<OutlineResponse>(
       client,
       enhancedSystemPrompt,
       userPrompt,
       OutlineResponseSchema,
-      { tools: [{ googleSearch: {} }] }
+      { tools: [{ googleSearch: {} }], images: imagesToSend }
     );
 
     // Validate response structure
