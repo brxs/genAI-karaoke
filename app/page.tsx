@@ -69,9 +69,9 @@ export default function Home() {
     setHasApiKey(true);
   };
 
-  const handleSubmit = (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[]) => {
+  const handleSubmit = (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[], useWebSearch?: boolean) => {
     setCurrentStyle(style);
-    generatePresentation(topic, style, absurdity, maxBulletPoints, slideCount, customStylePrompt, context, attachedImages);
+    generatePresentation(topic, style, absurdity, maxBulletPoints, slideCount, customStylePrompt, context, attachedImages, useWebSearch);
   };
 
   const handleSlideClick = (index: number) => {
@@ -287,19 +287,7 @@ export default function Home() {
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                <ViewToggle currentView={currentView} onToggle={setCurrentView} />
-                <button
-                  onClick={handleNewPresentation}
-                  className="px-5 py-2.5 text-black rounded-xl transition-all duration-150 text-sm font-bold hover:scale-105 active:scale-95"
-                  style={{
-                    background: "linear-gradient(180deg, #ffffff 0%, #e4e4e7 100%)",
-                    boxShadow: "0 3px 0 #a1a1aa, 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.8)",
-                  }}
-                >
-                  New Topic
-                </button>
-              </div>
+              <ViewToggle currentView={currentView} onToggle={setCurrentView} />
             </div>
 
             {/* Grid view */}
@@ -326,6 +314,8 @@ export default function Home() {
                   onStyleChange={(style) => updateSettings({ style })}
                   onAbsurdityChange={(absurdity) => updateSettings({ absurdity })}
                   onCustomStylePromptChange={(customStylePrompt) => updateSettings({ customStylePrompt })}
+                  onContextChange={(context) => updateSettings({ context })}
+                  onAttachedImagesChange={(attachedImages) => updateSettings({ attachedImages })}
                 />
 
                 {presentation.slides.some((s) => s.imageBase64) && (

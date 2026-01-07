@@ -1,8 +1,13 @@
 "use client";
 
+import { useRef } from "react";
 import { SlideStyle, STYLE_LIST } from "@/lib/styles";
 import { AbsurdityLevel, ABSURDITY_LEVELS } from "@/lib/absurdity";
 import type { AttachedImage } from "@/lib/types";
+
+const MAX_CONTEXT_LENGTH = 3000;
+const MAX_IMAGES = 5;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 interface PresentationSettingsProps {
   style: SlideStyle;
@@ -13,6 +18,8 @@ interface PresentationSettingsProps {
   onStyleChange: (style: SlideStyle) => void;
   onAbsurdityChange: (absurdity: AbsurdityLevel) => void;
   onCustomStylePromptChange: (prompt: string) => void;
+  onContextChange?: (context: string | undefined) => void;
+  onAttachedImagesChange?: (images: AttachedImage[] | undefined) => void;
 }
 
 export default function PresentationSettings({
@@ -24,9 +31,67 @@ export default function PresentationSettings({
   onStyleChange,
   onAbsurdityChange,
   onCustomStylePromptChange,
+  onContextChange,
+  onAttachedImagesChange,
 }: PresentationSettingsProps) {
   const currentAbsurdity = ABSURDITY_LEVELS.find((a) => a.level === absurdity);
   const currentStyle = STYLE_LIST.find((s) => s.id === style);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !onAttachedImagesChange) return;
+
+    const currentImages = attachedImages || [];
+    const remainingSlots = MAX_IMAGES - currentImages.length;
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+
+    const newImages: AttachedImage[] = [];
+
+    for (const file of filesToProcess) {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`File ${file.name} is too large. Max size is 10MB.`);
+        continue;
+      }
+
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64Data = result.split(",")[1];
+          resolve(base64Data);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      newImages.push({
+        data: base64,
+        mimeType: file.type,
+        useForContent: true,
+        useForVisual: false,
+      });
+    }
+
+    onAttachedImagesChange([...currentImages, ...newImages]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    if (!onAttachedImagesChange || !attachedImages) return;
+    const updated = attachedImages.filter((_, i) => i !== index);
+    onAttachedImagesChange(updated.length > 0 ? updated : undefined);
+  };
+
+  const handleToggleImageOption = (index: number, option: "useForContent" | "useForVisual") => {
+    if (!onAttachedImagesChange || !attachedImages) return;
+    const updated = attachedImages.map((img, i) =>
+      i === index ? { ...img, [option]: !img[option] } : img
+    );
+    onAttachedImagesChange(updated);
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 mt-8">
@@ -122,30 +187,106 @@ export default function PresentationSettings({
             </div>
           </div>
 
-          {/* Context - Read only display */}
-          {context && (
-            <div className="mt-6 pt-6 border-t border-white/5">
-              <p className="text-sm text-white/40 mb-2">Context Used</p>
+          {/* Context - Editable */}
+          <div className="mt-6 pt-6 border-t border-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-white/40">Context</p>
+              {onContextChange && context && (
+                <span className="text-xs text-white/30">
+                  {context.length} / {MAX_CONTEXT_LENGTH}
+                </span>
+              )}
+            </div>
+            {onContextChange ? (
+              <textarea
+                value={context || ""}
+                onChange={(e) => onContextChange(e.target.value || undefined)}
+                placeholder="Add details about your audience, key points to cover, or specific angle..."
+                className="w-full px-3 py-2 text-sm bg-white/[0.03] border border-white/10 rounded-xl focus:ring-1 focus:ring-white/30 focus:border-white/20 text-white placeholder-white/30 outline-none transition-all resize-none"
+                rows={3}
+                maxLength={MAX_CONTEXT_LENGTH}
+              />
+            ) : context ? (
               <p className="text-sm text-white/60 bg-white/[0.02] rounded-lg px-3 py-2 border border-white/5">
                 {context.length > 200 ? `${context.slice(0, 200)}...` : context}
               </p>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-white/30 italic">None provided</p>
+            )}
+          </div>
 
-          {/* Attached Images - Read only display */}
-          {attachedImages && attachedImages.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-white/5">
-              <p className="text-sm text-white/40 mb-3">Reference Images</p>
-              <div className="flex flex-wrap gap-2">
-                {attachedImages.map((image, index) => (
-                  <div key={index} className="flex flex-col gap-1">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10">
-                      <img
-                        src={`data:${image.mimeType};base64,${image.data}`}
-                        alt={`Reference ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+          {/* Attached Images - Editable */}
+          <div className="mt-6 pt-6 border-t border-white/5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm text-white/40">Reference Images</p>
+              {onAttachedImagesChange && (
+                <span className="text-xs text-white/30">
+                  {attachedImages?.length || 0} / {MAX_IMAGES}
+                </span>
+              )}
+            </div>
+
+            {/* Hidden file input */}
+            {onAttachedImagesChange && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              {attachedImages && attachedImages.length > 0 && attachedImages.map((image, index) => (
+                <div key={index} className="flex flex-col gap-1">
+                  <div className="relative group w-12 h-12 rounded-lg overflow-hidden border border-white/10">
+                    <img
+                      src={`data:${image.mimeType};base64,${image.data}`}
+                      alt={`Reference ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {onAttachedImagesChange && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {onAttachedImagesChange ? (
+                    <div className="flex gap-0.5 justify-center">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleImageOption(index, "useForContent")}
+                        className={`px-1 py-0.5 text-[8px] rounded transition-all ${
+                          image.useForContent
+                            ? "bg-blue-500/30 text-blue-300 border border-blue-500/50"
+                            : "bg-white/5 text-white/30 border border-white/10 hover:border-white/20"
+                        }`}
+                        title="Use for content guidance"
+                      >
+                        C
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleImageOption(index, "useForVisual")}
+                        className={`px-1 py-0.5 text-[8px] rounded transition-all ${
+                          image.useForVisual
+                            ? "bg-purple-500/30 text-purple-300 border border-purple-500/50"
+                            : "bg-white/5 text-white/30 border border-white/10 hover:border-white/20"
+                        }`}
+                        title="Use for visual style"
+                      >
+                        V
+                      </button>
                     </div>
+                  ) : (
                     <div className="flex gap-0.5 justify-center">
                       {image.useForContent && (
                         <span className="px-1 py-0.5 text-[8px] rounded bg-blue-500/30 text-blue-300 border border-blue-500/50">C</span>
@@ -154,11 +295,29 @@ export default function PresentationSettings({
                         <span className="px-1 py-0.5 text-[8px] rounded bg-purple-500/30 text-purple-300 border border-purple-500/50">V</span>
                       )}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Add image button */}
+              {onAttachedImagesChange && (!attachedImages || attachedImages.length < MAX_IMAGES) && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-12 h-12 rounded-lg border border-dashed border-white/20 hover:border-white/40 bg-white/[0.02] hover:bg-white/[0.05] transition-all flex items-center justify-center"
+                >
+                  <svg className="w-5 h-5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Empty state */}
+              {(!attachedImages || attachedImages.length === 0) && !onAttachedImagesChange && (
+                <p className="text-sm text-white/30 italic">None attached</p>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

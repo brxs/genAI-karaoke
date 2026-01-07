@@ -10,7 +10,7 @@ import BulletPointsSlider, { BulletPointsCount, DEFAULT_BULLET_POINTS } from "./
 import SlideCountSlider, { SlideCount, DEFAULT_SLIDE_COUNT } from "./SlideCountSlider";
 
 interface TopicFormProps {
-  onSubmit: (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[]) => void;
+  onSubmit: (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[], useWebSearch?: boolean) => void;
   isLoading: boolean;
   hasApiKey: boolean;
   onSetApiKey: () => void;
@@ -101,6 +101,7 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
   const [isContextExpanded, setIsContextExpanded] = useState(false);
   const [isImagesExpanded, setIsImagesExpanded] = useState(false);
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
+  const [useWebSearch, setUseWebSearch] = useState(true);
   const [isSpinning, setIsSpinning] = useState(false);
   const spinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -119,7 +120,8 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
         slideCount,
         style === "custom" ? customPrompt.trim() : undefined,
         context.trim() || undefined,
-        attachedImages.length > 0 ? attachedImages : undefined
+        attachedImages.length > 0 ? attachedImages : undefined,
+        useWebSearch
       );
     }
   };
@@ -344,6 +346,27 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
         >
           <svg className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={() => setUseWebSearch(!useWebSearch)}
+          disabled={isLoading || isSpinning}
+          className={`group px-5 rounded-2xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 ${
+            useWebSearch ? "" : "opacity-50"
+          }`}
+          style={{
+            background: useWebSearch
+              ? "linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)"
+              : "linear-gradient(180deg, #52525b 0%, #3f3f46 100%)",
+            boxShadow: useWebSearch
+              ? "0 4px 0 #1d4ed8, 0 6px 15px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.2)"
+              : "0 4px 0 #27272a, 0 6px 15px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.1)",
+          }}
+          title={useWebSearch ? "Web search enabled" : "Web search disabled"}
+        >
+          <svg className={`w-6 h-6 transition-colors ${useWebSearch ? "text-white" : "text-white/70 group-hover:text-white"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
           </svg>
         </button>
       </div>

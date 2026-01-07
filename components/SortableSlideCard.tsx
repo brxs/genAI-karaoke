@@ -32,7 +32,7 @@ export default function SortableSlideCard({
     transition,
     isDragging,
   } = useSortable({
-    id: slide.slideNumber,
+    id: slide.id,
     disabled,
   });
 

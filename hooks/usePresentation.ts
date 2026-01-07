@@ -5,6 +5,9 @@ import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptRespo
 
 const CONCURRENT_IMAGE_REQUESTS = 4;
 
+// Generate unique ID for slides
+const generateId = () => `slide-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
 export function usePresentation() {
   const [presentation, setPresentation] = useState<Presentation | null>(null);
   const [generationState, setGenerationState] = useState<GenerationState>({
@@ -16,7 +19,7 @@ export function usePresentation() {
   // AbortController ref to cancel in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const generatePresentation = useCallback(async (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: number, slideCount: number, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[]) => {
+  const generatePresentation = useCallback(async (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: number, slideCount: number, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[], useWebSearch?: boolean) => {
     // Abort any existing generation
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -36,7 +39,7 @@ export function usePresentation() {
       const outlineRes = await fetch("/api/generate-outline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, absurdity, maxBulletPoints, slideCount, context, attachedImages }),
+        body: JSON.stringify({ topic, absurdity, maxBulletPoints, slideCount, context, attachedImages, useWebSearch }),
         signal,
       });
 
@@ -49,6 +52,7 @@ export function usePresentation() {
 
       // Create title slide
       const titleSlide: Slide = {
+        id: generateId(),
         slideNumber: 0,
         title: topic,
         bulletPoints: [],
@@ -57,6 +61,7 @@ export function usePresentation() {
 
       // Initialize content slides with outline data (starting at slide 1)
       const contentSlides: Slide[] = outline.slides.map((s, i) => ({
+        id: generateId(),
         slideNumber: i + 1,
         title: s.title,
         bulletPoints: s.bulletPoints,
@@ -345,6 +350,7 @@ export function usePresentation() {
     setPresentation((prev) => {
       if (!prev) return null;
       const newSlide: Slide = {
+        id: generateId(),
         slideNumber: prev.slides.length,
         title: "New Slide",
         bulletPoints: ["Add your first point"],
@@ -356,11 +362,13 @@ export function usePresentation() {
     return newSlideIndex;
   }, []);
 
-  // Update presentation settings (style, absurdity, customStylePrompt)
+  // Update presentation settings (style, absurdity, customStylePrompt, context, attachedImages)
   const updateSettings = useCallback((updates: {
     style?: SlideStyle;
     absurdity?: AbsurdityLevel;
     customStylePrompt?: string;
+    context?: string;
+    attachedImages?: AttachedImage[];
   }) => {
     setPresentation((prev) => {
       if (!prev) return null;
@@ -377,6 +385,7 @@ export function usePresentation() {
     }
 
     const titleSlide: Slide = {
+      id: generateId(),
       slideNumber: 0,
       title,
       bulletPoints: [],

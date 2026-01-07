@@ -16,16 +16,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { topic, absurdity = 3, maxBulletPoints = 3, slideCount = 7, context, attachedImages } = await request.json() as {
+    const { topic, absurdity = 3, maxBulletPoints = 3, slideCount = 7, context, attachedImages, useWebSearch = true } = await request.json() as {
       topic: string;
       absurdity?: number;
       maxBulletPoints?: number;
       slideCount?: number;
       context?: string;
       attachedImages?: AttachedImage[];
+      useWebSearch?: boolean;
     };
 
-    console.log("[generate-outline] Request params:", { topic, absurdity, maxBulletPoints, slideCount, hasContext: !!context, imageCount: attachedImages?.length || 0 });
+    console.log("[generate-outline] Request params:", { topic, absurdity, maxBulletPoints, slideCount, hasContext: !!context, imageCount: attachedImages?.length || 0, useWebSearch });
 
     if (!topic || typeof topic !== "string") {
       return NextResponse.json(
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
       enhancedSystemPrompt,
       userPrompt,
       OutlineResponseSchema,
-      { tools: [{ googleSearch: {} }], images: imagesToSend }
+      { tools: useWebSearch ? [{ googleSearch: {} }] : undefined, images: imagesToSend }
     );
 
     // Validate response structure

@@ -10,6 +10,7 @@ export interface AttachedImage {
 }
 
 export interface Slide {
+  id: string;  // Unique identifier for React keys
   slideNumber: number;
   title: string;
   bulletPoints: string[];

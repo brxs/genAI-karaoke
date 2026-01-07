@@ -59,8 +59,8 @@ export default function GridView({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id && onReorderSlides) {
-      const oldIndex = slides.findIndex((s) => s.slideNumber === active.id);
-      const newIndex = slides.findIndex((s) => s.slideNumber === over.id);
+      const oldIndex = slides.findIndex((s) => s.id === active.id);
+      const newIndex = slides.findIndex((s) => s.id === over.id);
 
       // Don't allow reordering to/from title slide position
       if (oldIndex > 0 && newIndex > 0) {
@@ -69,8 +69,8 @@ export default function GridView({
     }
   };
 
-  // Get sortable IDs (only non-title slides can be sorted)
-  const sortableIds = slides.map((s) => s.slideNumber);
+  // Get sortable IDs (use unique slide.id for stable keys)
+  const sortableIds = slides.map((s) => s.id);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4">
@@ -83,7 +83,7 @@ export default function GridView({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {slides.map((slide, index) => (
               <SortableSlideCard
-                key={slide.slideNumber}
+                key={slide.id}
                 slide={slide}
                 onClick={() => onSlideClick(index)}
                 onRetry={onRetrySlide ? () => onRetrySlide(index) : undefined}
