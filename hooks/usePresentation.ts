@@ -2,8 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptResponse, SlideStyle, AbsurdityLevel, AttachedImage } from "@/lib/types";
-
-const CONCURRENT_IMAGE_REQUESTS = 4;
+import { CONCURRENT_IMAGE_REQUESTS } from "@/lib/constants";
 
 // Generate unique ID for slides
 const generateId = () => `slide-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

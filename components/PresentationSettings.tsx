@@ -4,10 +4,8 @@ import { useRef } from "react";
 import { SlideStyle, STYLE_LIST } from "@/lib/styles";
 import { AbsurdityLevel, ABSURDITY_LEVELS } from "@/lib/absurdity";
 import type { AttachedImage } from "@/lib/types";
-
-const MAX_CONTEXT_LENGTH = 3000;
-const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+import { generateRandomStyle } from "@/lib/random-styles";
+import { MAX_CUSTOM_STYLE_LENGTH, MAX_CONTEXT_LENGTH, MAX_IMAGES, MAX_FILE_SIZE } from "@/lib/constants";
 
 interface PresentationSettingsProps {
   style: SlideStyle;
@@ -143,15 +141,26 @@ export default function PresentationSettings({
 
             {/* Custom style prompt input */}
             {style === "custom" && (
-              <div className="mt-3">
+              <div className="mt-3 flex gap-2">
                 <input
                   type="text"
                   value={customStylePrompt}
                   onChange={(e) => onCustomStylePromptChange(e.target.value)}
                   placeholder="Describe your style (e.g., 'Watercolor painting with soft pastels')"
-                  className="w-full px-4 py-2.5 text-sm bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl focus:ring-1 focus:ring-white/30 focus:border-white/20 text-white placeholder-white/30 outline-none transition-all"
-                  maxLength={200}
+                  className="flex-1 px-4 py-2.5 text-sm bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl focus:ring-1 focus:ring-white/30 focus:border-white/20 text-white placeholder-white/30 outline-none transition-all"
+                  maxLength={MAX_CUSTOM_STYLE_LENGTH}
                 />
+                <button
+                  type="button"
+                  onClick={() => onCustomStylePromptChange(generateRandomStyle())}
+                  className="px-3 py-2.5 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl hover:bg-white/[0.08] hover:border-white/20 transition-all group"
+                  title="Random style"
+                >
+                  <svg className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+                  </svg>
+                </button>
               </div>
             )}
           </div>

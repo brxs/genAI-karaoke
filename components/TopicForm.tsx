@@ -8,6 +8,7 @@ import StylePicker from "./StylePicker";
 import AbsurditySlider from "./AbsurditySlider";
 import BulletPointsSlider, { BulletPointsCount, DEFAULT_BULLET_POINTS } from "./BulletPointsSlider";
 import SlideCountSlider, { SlideCount, DEFAULT_SLIDE_COUNT } from "./SlideCountSlider";
+import { MAX_TOPIC_LENGTH, MAX_CONTEXT_LENGTH, MAX_IMAGES, MAX_FILE_SIZE, ALLOWED_IMAGE_TYPES } from "@/lib/constants";
 
 interface TopicFormProps {
   onSubmit: (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[], useWebSearch?: boolean) => void;
@@ -15,11 +16,6 @@ interface TopicFormProps {
   hasApiKey: boolean;
   onSetApiKey: () => void;
 }
-
-const MAX_CONTEXT_LENGTH = 3000;
-const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 const EXAMPLE_TOPICS = [
   "Why Your Cat Is Plotting Against You",
@@ -331,7 +327,7 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
           placeholder="Enter any topic..."
           disabled={isLoading || isSpinning}
           className="flex-1 px-6 py-5 text-lg bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl focus:ring-1 focus:ring-white/30 focus:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-white/30 outline-none transition-all"
-          maxLength={200}
+          maxLength={MAX_TOPIC_LENGTH}
         />
         <button
           type="button"
@@ -345,7 +341,8 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
           title="Random topic"
         >
           <svg className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
           </svg>
         </button>
         <button
