@@ -205,8 +205,8 @@ export default function Home() {
               <img src="/banana.svg" alt="" className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-white">Banana.ppt</h1>
-              <p className="text-xs text-white/40">AI-powered improv slides</p>
+              <h1 className="text-xl font-semibold text-white">banana.fyi</h1>
+              <p className="text-xs text-white/40">AI-powered slides</p>
             </div>
           </button>
           <div className="flex items-center gap-2">
