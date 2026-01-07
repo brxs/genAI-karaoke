@@ -14,6 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://banana.fyi"),
+  applicationName: "banana.fyi",
+  category: "technology",
+  themeColor: "#000000",
+  colorScheme: "dark",
   title: "banana.fyi - AI-Powered Slides",
   description: "Generate absurd AI presentations on any topic and present them with a straight face. The ultimate party game where you present slides you've never seen before.",
   keywords: ["banana.fyi", "AI presentation maker", "AI slides", "presentation generator", "slide creator", "AI deck builder", "presentation tool"],
@@ -24,11 +29,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "banana.fyi",
+    images: ["/icon.svg"],
   },
   twitter: {
     card: "summary_large_image",
     title: "banana.fyi",
     description: "Present slides you've never seen before. AI generates absurd presentations, you try to keep a straight face.",
+    images: ["/icon.svg"],
   },
   robots: {
     index: true,
