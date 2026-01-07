@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Tool } from "@google/genai";
 import type { TObject } from "@sinclair/typebox";
 
 export function createGeminiClient(apiKey: string) {
@@ -8,13 +8,17 @@ export function createGeminiClient(apiKey: string) {
 export async function generateText(
   client: GoogleGenAI,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  options?: { tools?: Tool[] }
 ): Promise<string> {
   const response = await client.models.generateContent({
-    model: "gemini-2.5-pro",
+    model: "gemini-3-pro-preview",
     contents: [
       { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
     ],
+    config: {
+      tools: options?.tools,
+    },
   });
 
   const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -28,14 +32,16 @@ export async function generateStructuredOutput<T>(
   client: GoogleGenAI,
   systemPrompt: string,
   userPrompt: string,
-  schema: TObject
+  schema: TObject,
+  options?: { tools?: Tool[] }
 ): Promise<T> {
   const response = await client.models.generateContent({
-    model: "gemini-2.5-pro",
+    model: "gemini-3-pro-preview",
     contents: [
       { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
     ],
     config: {
+      tools: options?.tools,
       responseMimeType: "application/json",
       responseSchema: schema,
     },

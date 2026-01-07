@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
       client,
       enhancedSystemPrompt,
       userPrompt,
-      OutlineResponseSchema
+      OutlineResponseSchema,
+      { tools: [{ googleSearch: {} }] }
     );
 
     // Validate response structure
