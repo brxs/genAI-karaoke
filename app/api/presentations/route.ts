@@ -25,7 +25,7 @@ export async function GET() {
       },
     });
 
-    const summaries = presentations.map((p) => ({
+    const summaries = presentations.map((p: (typeof presentations)[number]) => ({
       id: p.id,
       topic: p.topic,
       style: p.style,
