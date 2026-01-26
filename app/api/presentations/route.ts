@@ -22,6 +22,9 @@ export async function GET() {
           orderBy: { slideNumber: "asc" },
           take: 1, // Just get first slide for thumbnail
         },
+        _count: {
+          select: { slides: true },
+        },
       },
     });
 
@@ -29,7 +32,7 @@ export async function GET() {
       id: p.id,
       topic: p.topic,
       style: p.style,
-      slideCount: p.slides.length,
+      slideCount: p._count.slides,
       thumbnailUrl: p.slides[0]?.imageUrl,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
