@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface Banana {
   id: number;
@@ -23,11 +23,8 @@ function generateBananas(count: number): Banana[] {
 }
 
 export default function BananaRain() {
-  const [bananas, setBananas] = useState<Banana[]>([]);
-
-  useEffect(() => {
-    setBananas(generateBananas(18));
-  }, []);
+  // Use lazy initializer to avoid setState in effect
+  const [bananas] = useState<Banana[]>(() => generateBananas(18));
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">

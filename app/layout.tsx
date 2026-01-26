@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,12 +14,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  colorScheme: "dark",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://banana.fyi"),
   applicationName: "banana.fyi",
   category: "technology",
-  themeColor: "#000000",
-  colorScheme: "dark",
   title: "banana.fyi - AI-Powered Slides",
   description: "Create beautiful AI-powered presentations in seconds. Generate complete slide decks on any topic or build from scratch.",
   keywords: ["banana.fyi", "AI presentation maker", "AI slides", "presentation generator", "slide creator", "AI deck builder", "presentation tool"],
@@ -53,7 +57,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <Toaster
           position="bottom-right"
           theme="dark"

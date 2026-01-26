@@ -1,23 +1,70 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptResponse, SlideStyle, AbsurdityLevel, AttachedImage } from "@/lib/types";
 import { CONCURRENT_IMAGE_REQUESTS } from "@/lib/constants";
+import { useAuth } from "./useAuth";
+import { uploadSlideImage, deletePresentationImages } from "@/lib/supabase/storage";
+
+// Debounce helper
+function debounce<T extends (...args: Parameters<T>) => void>(
+  fn: T,
+  delay: number
+): T & { cancel: () => void } {
+  let timeoutId: NodeJS.Timeout | null = null;
+  const debounced = (...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+  debounced.cancel = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+  };
+  return debounced as T & { cancel: () => void };
+}
 
 // Generate unique ID for slides
 const generateId = () => `slide-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 export function usePresentation() {
+  const { user } = useAuth();
   const [presentation, setPresentation] = useState<Presentation | null>(null);
   const [generationState, setGenerationState] = useState<GenerationState>({
     status: "idle",
     totalSlides: 7,
   });
-  const [regeneratingSlide, setRegeneratingSlide] = useState<number | null>(null);
+  const [regeneratingSlideId, setRegeneratingSlideId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // AbortController ref to cancel in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Track if we should auto-save (only after first manual or auto save)
+  const shouldAutoSaveRef = useRef(false);
+  // Track content version to avoid re-saving immediately after save completes
+  const lastSavedContentRef = useRef<string | null>(null);
+  // Track when images need uploading (after regeneration)
+  const needsImageUploadRef = useRef(false);
+
+  // Generate a content hash to detect actual changes (excludes metadata like imageUrl, isSaved)
+  const getContentHash = useCallback((p: Presentation | null) => {
+    if (!p) return null;
+    return JSON.stringify({
+      topic: p.topic,
+      style: p.style,
+      absurdity: p.absurdity,
+      customStylePrompt: p.customStylePrompt,
+      context: p.context,
+      slides: p.slides.map((s) => ({
+        id: s.id,
+        slideNumber: s.slideNumber,
+        title: s.title,
+        bulletPoints: s.bulletPoints,
+        imagePrompt: s.imagePrompt,
+        isTitleSlide: s.isTitleSlide,
+      })),
+    });
+  }, []);
 
   const generatePresentation = useCallback(async (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: number, slideCount: number, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[], useWebSearch?: boolean) => {
     // Abort any existing generation
@@ -117,7 +164,7 @@ export function usePresentation() {
         totalSlides,
       });
 
-      const generateImageForSlide = async (slideIndex: number): Promise<void> => {
+      const generateImageForSlide = async (slide: { id: string; imagePrompt: string }): Promise<void> => {
         // Check if aborted before starting
         if (signal.aborted) return;
 
@@ -126,8 +173,8 @@ export function usePresentation() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              prompt: allImagePrompts[slideIndex],
-              slideIndex,
+              prompt: slide.imagePrompt,
+              slideId: slide.id,
               style,
               customStylePrompt: style === "custom" ? customStylePrompt : undefined,
             }),
@@ -146,12 +193,12 @@ export function usePresentation() {
 
           setPresentation((prev) => {
             if (!prev) return null;
-            const updatedSlides = [...prev.slides];
-            updatedSlides[slideIndex] = {
-              ...updatedSlides[slideIndex],
-              imageBase64,
+            return {
+              ...prev,
+              slides: prev.slides.map((s) =>
+                s.id === slide.id ? { ...s, imageBase64 } : s
+              ),
             };
-            return { ...prev, slides: updatedSlides };
           });
         } catch (err) {
           // Ignore abort errors
@@ -163,29 +210,31 @@ export function usePresentation() {
           // Mark individual slide as failed but continue with others
           setPresentation((prev) => {
             if (!prev) return null;
-            const updatedSlides = [...prev.slides];
-            updatedSlides[slideIndex] = {
-              ...updatedSlides[slideIndex],
-              imageError: err instanceof Error ? err.message : "Failed to generate image",
+            return {
+              ...prev,
+              slides: prev.slides.map((s) =>
+                s.id === slide.id
+                  ? { ...s, imageError: err instanceof Error ? err.message : "Failed to generate image" }
+                  : s
+              ),
             };
-            return { ...prev, slides: updatedSlides };
           });
         }
       };
 
-      // Process images with concurrency limit
-      const slideIndices = Array.from({ length: totalSlides }, (_, i) => i);
+      // Process images with concurrency limit - use slides with their IDs and prompts
+      const slidesToProcess = slidesWithPrompts.map((s) => ({ id: s.id, imagePrompt: s.imagePrompt! }));
       let completed = 0;
 
       const processQueue = async () => {
-        const queue = [...slideIndices];
+        const queue = [...slidesToProcess];
 
         const workers = Array.from({ length: CONCURRENT_IMAGE_REQUESTS }, async () => {
           while (queue.length > 0 && !signal.aborted) {
-            const index = queue.shift();
-            if (index === undefined) break;
+            const slide = queue.shift();
+            if (!slide) break;
 
-            await generateImageForSlide(index);
+            await generateImageForSlide(slide);
 
             // Don't update state if aborted
             if (signal.aborted) break;
@@ -236,22 +285,23 @@ export function usePresentation() {
     setGenerationState({ status: "idle", totalSlides: 7 });
   }, []);
 
-  const regenerateSlideImage = useCallback(async (slideIndex: number) => {
+  const regenerateSlideImage = useCallback(async (slideId: string) => {
     if (!presentation) return;
 
-    const slide = presentation.slides[slideIndex];
+    const slide = presentation.slides.find((s) => s.id === slideId);
     if (!slide?.imagePrompt) return;
 
     // Clear the error and set loading state
     setPresentation((prev) => {
       if (!prev) return null;
-      const updatedSlides = [...prev.slides];
-      updatedSlides[slideIndex] = {
-        ...updatedSlides[slideIndex],
-        imageError: undefined,
-        imageBase64: undefined,
+      return {
+        ...prev,
+        slides: prev.slides.map((s) =>
+          s.id === slideId
+            ? { ...s, imageError: undefined, imageBase64: undefined, imageUrl: undefined }
+            : s
+        ),
       };
-      return { ...prev, slides: updatedSlides };
     });
 
     try {
@@ -260,7 +310,7 @@ export function usePresentation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: slide.imagePrompt,
-          slideIndex,
+          slideId,
           style: presentation.style,
           customStylePrompt: presentation.style === "custom" ? presentation.customStylePrompt : undefined,
         }),
@@ -275,14 +325,16 @@ export function usePresentation() {
 
       setPresentation((prev) => {
         if (!prev) return null;
-        const updatedSlides = [...prev.slides];
-        updatedSlides[slideIndex] = {
-          ...updatedSlides[slideIndex],
-          imageBase64,
-          imageError: undefined,
+        return {
+          ...prev,
+          slides: prev.slides.map((s) =>
+            s.id === slideId ? { ...s, imageBase64, imageError: undefined } : s
+          ),
         };
-        return { ...prev, slides: updatedSlides };
       });
+
+      // Mark that we need to upload this new image
+      needsImageUploadRef.current = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to generate image";
       toast.error("Failed to regenerate image", {
@@ -290,41 +342,46 @@ export function usePresentation() {
       });
       setPresentation((prev) => {
         if (!prev) return null;
-        const updatedSlides = [...prev.slides];
-        updatedSlides[slideIndex] = {
-          ...updatedSlides[slideIndex],
-          imageError: errorMessage,
+        return {
+          ...prev,
+          slides: prev.slides.map((s) =>
+            s.id === slideId ? { ...s, imageError: errorMessage } : s
+          ),
         };
-        return { ...prev, slides: updatedSlides };
       });
     }
   }, [presentation]);
 
   // Update a slide's content (title and/or bullet points)
   const updateSlide = useCallback((
-    slideIndex: number,
+    slideId: string,
     updates: { title?: string; bulletPoints?: string[] }
   ) => {
     setPresentation((prev) => {
       if (!prev) return null;
-      const updatedSlides = [...prev.slides];
-      updatedSlides[slideIndex] = {
-        ...updatedSlides[slideIndex],
-        ...updates,
+      const slide = prev.slides.find((s) => s.id === slideId);
+      if (!slide) return prev;
+
+      return {
+        ...prev,
+        // Update topic if title slide is edited
+        topic: updates.title && slide.isTitleSlide ? updates.title : prev.topic,
+        slides: prev.slides.map((s) =>
+          s.id === slideId ? { ...s, ...updates } : s
+        ),
       };
-      // Update topic if title slide is edited
-      const newTopic = updates.title && slideIndex === 0 ? updates.title : prev.topic;
-      return { ...prev, topic: newTopic, slides: updatedSlides };
     });
   }, []);
 
   // Delete a slide
-  const deleteSlide = useCallback((slideIndex: number) => {
+  const deleteSlide = useCallback((slideId: string) => {
     setPresentation((prev) => {
       if (!prev) return null;
+      const slide = prev.slides.find((s) => s.id === slideId);
       // Don't delete title slide
-      if (slideIndex === 0) return prev;
-      const updatedSlides = prev.slides.filter((_, i) => i !== slideIndex);
+      if (!slide || slide.isTitleSlide) return prev;
+
+      const updatedSlides = prev.slides.filter((s) => s.id !== slideId);
       // Renumber slides
       const renumberedSlides = updatedSlides.map((slide, i) => ({
         ...slide,
@@ -352,22 +409,23 @@ export function usePresentation() {
     });
   }, []);
 
-  // Add a new slide
-  const addSlide = useCallback((): number => {
-    let newSlideIndex = -1;
+  // Add a new slide - returns the new slide's ID
+  const addSlide = useCallback((): string | null => {
+    const newSlideId = generateId();
+    let success = false;
     setPresentation((prev) => {
       if (!prev) return null;
+      success = true;
       const newSlide: Slide = {
-        id: generateId(),
+        id: newSlideId,
         slideNumber: prev.slides.length,
         title: "New Slide",
         bulletPoints: ["Add your first point"],
         isTitleSlide: false,
       };
-      newSlideIndex = prev.slides.length;
       return { ...prev, slides: [...prev.slides, newSlide] };
     });
-    return newSlideIndex;
+    return success ? newSlideId : null;
   }, []);
 
   // Update presentation settings (style, absurdity, customStylePrompt, context, attachedImages)
@@ -414,34 +472,40 @@ export function usePresentation() {
   // Regenerate image prompt and image for a specific slide
   // Optional updatedContent parameter allows passing new content directly (avoids stale state issues)
   const regenerateSlideWithNewPrompt = useCallback(async (
-    slideIndex: number,
+    slideId: string,
     updatedContent?: { title: string; bulletPoints: string[] }
   ) => {
     if (!presentation) return;
 
-    const slide = presentation.slides[slideIndex];
+    const slide = presentation.slides.find((s) => s.id === slideId);
     if (!slide) return;
 
     // Use updated content if provided, otherwise use current slide content
     const title = updatedContent?.title ?? slide.title;
     const bulletPoints = updatedContent?.bulletPoints ?? slide.bulletPoints;
 
-    setRegeneratingSlide(slideIndex);
+    setRegeneratingSlideId(slideId);
 
     // Clear existing image and update content if new content was provided
     setPresentation((prev) => {
       if (!prev) return null;
-      const updatedSlides = [...prev.slides];
-      updatedSlides[slideIndex] = {
-        ...updatedSlides[slideIndex],
-        ...(updatedContent && { title, bulletPoints }),
-        imagePrompt: undefined,
-        imageBase64: undefined,
-        imageError: undefined,
+      return {
+        ...prev,
+        // Update topic if title slide is edited
+        topic: updatedContent?.title && slide.isTitleSlide ? updatedContent.title : prev.topic,
+        slides: prev.slides.map((s) =>
+          s.id === slideId
+            ? {
+                ...s,
+                ...(updatedContent && { title, bulletPoints }),
+                imagePrompt: undefined,
+                imageBase64: undefined,
+                imageUrl: undefined, // Clear URL so new image can be uploaded
+                imageError: undefined,
+              }
+            : s
+        ),
       };
-      // Update topic if title slide is edited
-      const newTopic = updatedContent?.title && slideIndex === 0 ? updatedContent.title : prev.topic;
-      return { ...prev, topic: newTopic, slides: updatedSlides };
     });
 
     try {
@@ -453,7 +517,7 @@ export function usePresentation() {
           title,
           bulletPoints,
           isTitleSlide: slide.isTitleSlide,
-          topic: updatedContent?.title && slideIndex === 0 ? updatedContent.title : presentation.topic,
+          topic: updatedContent?.title && slide.isTitleSlide ? updatedContent.title : presentation.topic,
         }),
       });
 
@@ -467,12 +531,12 @@ export function usePresentation() {
       // Update slide with new prompt
       setPresentation((prev) => {
         if (!prev) return null;
-        const updatedSlides = [...prev.slides];
-        updatedSlides[slideIndex] = {
-          ...updatedSlides[slideIndex],
-          imagePrompt,
+        return {
+          ...prev,
+          slides: prev.slides.map((s) =>
+            s.id === slideId ? { ...s, imagePrompt } : s
+          ),
         };
-        return { ...prev, slides: updatedSlides };
       });
 
       // Step 2: Generate new image
@@ -481,7 +545,7 @@ export function usePresentation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: imagePrompt,
-          slideIndex,
+          slideId,
           style: presentation.style,
           customStylePrompt: presentation.style === "custom" ? presentation.customStylePrompt : undefined,
         }),
@@ -496,14 +560,16 @@ export function usePresentation() {
 
       setPresentation((prev) => {
         if (!prev) return null;
-        const updatedSlides = [...prev.slides];
-        updatedSlides[slideIndex] = {
-          ...updatedSlides[slideIndex],
-          imageBase64,
-          imageError: undefined,
+        return {
+          ...prev,
+          slides: prev.slides.map((s) =>
+            s.id === slideId ? { ...s, imageBase64, imageError: undefined } : s
+          ),
         };
-        return { ...prev, slides: updatedSlides };
       });
+
+      // Mark that we need to upload this new image
+      needsImageUploadRef.current = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to regenerate";
       toast.error("Failed to regenerate slide", {
@@ -511,22 +577,313 @@ export function usePresentation() {
       });
       setPresentation((prev) => {
         if (!prev) return null;
-        const updatedSlides = [...prev.slides];
-        updatedSlides[slideIndex] = {
-          ...updatedSlides[slideIndex],
-          imageError: errorMessage,
+        return {
+          ...prev,
+          slides: prev.slides.map((s) =>
+            s.id === slideId ? { ...s, imageError: errorMessage } : s
+          ),
         };
-        return { ...prev, slides: updatedSlides };
       });
     } finally {
-      setRegeneratingSlide(null);
+      setRegeneratingSlideId(null);
     }
   }, [presentation]);
+
+  // Save presentation to database
+  // silent: true = no toast (for auto-saves after edits)
+  const savePresentation = useCallback(async (silent = false) => {
+    if (!presentation || !user) return;
+
+    setIsSaving(true);
+    try {
+      // For new presentations, save first to get an ID
+      let presentationId = presentation.id;
+
+      if (!presentationId) {
+        // First save - create presentation without images to get ID
+        const slidesForApi = presentation.slides.map((s) => ({
+          id: s.id,
+          slideNumber: s.slideNumber,
+          title: s.title,
+          bulletPoints: s.bulletPoints,
+          imagePrompt: s.imagePrompt,
+          imageUrl: undefined,
+          imageError: s.imageError,
+          isTitleSlide: s.isTitleSlide,
+        }));
+
+        const response = await fetch("/api/presentations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topic: presentation.topic,
+            style: presentation.style,
+            absurdity: presentation.absurdity,
+            customStylePrompt: presentation.customStylePrompt,
+            context: presentation.context,
+            slides: slidesForApi,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to save");
+        }
+
+        const saved = await response.json();
+        presentationId = saved.id;
+
+        // Update state with the new ID
+        setPresentation((prev) => prev ? { ...prev, id: saved.id } : null);
+      }
+
+      // Now upload any images that don't have URLs yet
+      const slidesWithUrls = await Promise.all(
+        presentation.slides.map(async (slide) => {
+          // If slide has base64 image but no URL, upload it
+          if (slide.imageBase64 && !slide.imageUrl && presentationId) {
+            try {
+              const imageUrl = await uploadSlideImage(
+                user.id,
+                presentationId,
+                slide.id,
+                slide.imageBase64
+              );
+              return { ...slide, imageUrl };
+            } catch (err) {
+              console.error("Failed to upload image:", err);
+              return slide;
+            }
+          }
+          return slide;
+        })
+      );
+
+      // Always update existing presentations (slides may have been reordered, edited, etc.)
+      const slidesForApi = slidesWithUrls.map((s) => ({
+        id: s.id,
+        slideNumber: s.slideNumber,
+        title: s.title,
+        bulletPoints: s.bulletPoints,
+        imagePrompt: s.imagePrompt,
+        imageUrl: s.imageUrl,
+        imageError: s.imageError,
+        isTitleSlide: s.isTitleSlide,
+      }));
+
+      const response = await fetch("/api/presentations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: presentationId,
+          topic: presentation.topic,
+          style: presentation.style,
+          absurdity: presentation.absurdity,
+          customStylePrompt: presentation.customStylePrompt,
+          context: presentation.context,
+          slides: slidesForApi,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to save");
+      }
+
+      // Update local state with saved data
+      setPresentation((prev) => {
+        if (!prev) return null;
+
+        // Create a map of uploaded image URLs by slide ID
+        const uploadedUrls = new Map(
+          slidesWithUrls
+            .filter((s) => s.imageUrl)
+            .map((s) => [s.id, s.imageUrl])
+        );
+
+        return {
+          ...prev,
+          id: presentationId,
+          slides: prev.slides.map((slide) => ({
+            ...slide,
+            // Only update imageUrl if we uploaded one for this slide
+            imageUrl: uploadedUrls.get(slide.id) || slide.imageUrl,
+          })),
+          isSaved: true,
+          updatedAt: new Date(),
+        };
+      });
+
+      setLastSaved(new Date());
+      shouldAutoSaveRef.current = true;
+      if (!silent) {
+        toast.success("Presentation saved");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("Failed to save presentation");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [presentation, user]);
+
+  // Load presentation from database
+  const loadPresentation = useCallback(
+    async (presentationId: string) => {
+      if (!user) return;
+
+      try {
+        const response = await fetch(`/api/presentations/${presentationId}`);
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to load");
+        }
+
+        const data = await response.json();
+
+        // Transform database format to local format
+        const loadedPresentation: Presentation = {
+          id: data.id,
+          topic: data.topic,
+          style: data.style as SlideStyle,
+          absurdity: data.absurdity as AbsurdityLevel,
+          customStylePrompt: data.customStylePrompt ?? undefined,
+          context: data.context ?? undefined,
+          createdAt: new Date(data.createdAt),
+          updatedAt: new Date(data.updatedAt),
+          isSaved: true,
+          slides: data.slides.map(
+            (slide: {
+              id: string;
+              slideNumber: number;
+              title: string;
+              bulletPoints: string[];
+              imagePrompt: string | null;
+              imageUrl: string | null;
+              imageError: string | null;
+              isTitleSlide: boolean;
+            }) => ({
+              id: slide.id,
+              slideNumber: slide.slideNumber,
+              title: slide.title,
+              bulletPoints: slide.bulletPoints,
+              imagePrompt: slide.imagePrompt ?? undefined,
+              imageUrl: slide.imageUrl ?? undefined,
+              imageError: slide.imageError ?? undefined,
+              isTitleSlide: slide.isTitleSlide,
+            })
+          ),
+        };
+
+        setPresentation(loadedPresentation);
+        setGenerationState({
+          status: "complete",
+          totalSlides: loadedPresentation.slides.length,
+        });
+        setLastSaved(new Date(data.updatedAt));
+        // Set content hash so we don't immediately re-save
+        lastSavedContentRef.current = getContentHash(loadedPresentation);
+        shouldAutoSaveRef.current = true;
+      } catch (error) {
+        console.error("Load error:", error);
+        toast.error("Failed to load presentation");
+      }
+    },
+    [user, getContentHash]
+  );
+
+  // Delete presentation from database
+  const deletePresentation = useCallback(
+    async (presentationId: string) => {
+      if (!user) return;
+
+      try {
+        // Delete images from storage first
+        await deletePresentationImages(user.id, presentationId);
+
+        const response = await fetch(`/api/presentations/${presentationId}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to delete");
+        }
+
+        // Clear local state if this is the current presentation
+        if (presentation?.id === presentationId) {
+          setPresentation(null);
+          setGenerationState({ status: "idle", totalSlides: 7 });
+        }
+
+        toast.success("Presentation deleted");
+      } catch (error) {
+        console.error("Delete error:", error);
+        toast.error("Failed to delete presentation");
+      }
+    },
+    [user, presentation?.id]
+  );
+
+  // Debounced save for auto-save after edits (silent - no toast)
+  const debouncedSave = useMemo(
+    () =>
+      debounce(() => {
+        if (user && presentation?.isSaved && shouldAutoSaveRef.current) {
+          // Only save if content actually changed
+          const currentHash = getContentHash(presentation);
+          if (currentHash && currentHash !== lastSavedContentRef.current) {
+            lastSavedContentRef.current = currentHash;
+            savePresentation(true); // silent auto-save
+          }
+        }
+      }, 2000),
+    [user, presentation, savePresentation, getContentHash]
+  );
+
+  // Auto-save after generation completes
+  useEffect(() => {
+    if (
+      generationState.status === "complete" &&
+      user &&
+      presentation &&
+      !presentation.isSaved
+    ) {
+      // First save after generation - set the content hash
+      lastSavedContentRef.current = getContentHash(presentation);
+      savePresentation();
+    }
+  }, [generationState.status, user, presentation?.isSaved, savePresentation, presentation, getContentHash]);
+
+  // Auto-save after edits (debounced)
+  useEffect(() => {
+    if (presentation?.isSaved && shouldAutoSaveRef.current) {
+      debouncedSave();
+    }
+    return () => debouncedSave.cancel();
+  }, [
+    presentation?.slides,
+    presentation?.topic,
+    presentation?.style,
+    presentation?.isSaved,
+    debouncedSave,
+  ]);
+
+  // Save after image regeneration to upload new images
+  useEffect(() => {
+    if (needsImageUploadRef.current && user && presentation?.isSaved) {
+      needsImageUploadRef.current = false;
+      savePresentation(true); // silent save to upload images
+    }
+  }, [presentation?.slides, user, presentation?.isSaved, savePresentation]);
 
   return {
     presentation,
     generationState,
-    regeneratingSlide,
+    regeneratingSlideId,
+    isSaving,
+    lastSaved,
     generatePresentation,
     resetPresentation,
     regenerateSlideImage,
@@ -537,5 +894,8 @@ export function usePresentation() {
     updateSettings,
     createBlankPresentation,
     regenerateSlideWithNewPrompt,
+    savePresentation,
+    loadPresentation,
+    deletePresentation,
   };
 }

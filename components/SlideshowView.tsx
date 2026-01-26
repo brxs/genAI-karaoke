@@ -87,15 +87,19 @@ export default function SlideshowView({
     }, AUTO_HIDE_DELAY);
   }, []);
 
-  // Initialize auto-hide on mount and clean up
+  // Initialize auto-hide timeout on mount and clean up
   useEffect(() => {
-    showControls();
+    // Start the auto-hide timeout (controlsVisible is already true by default)
+    hideTimeoutRef.current = setTimeout(() => {
+      setControlsVisible(false);
+    }, AUTO_HIDE_DELAY);
+
     return () => {
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
       }
     };
-  }, [showControls]);
+  }, []);
 
   // Handle mouse movement for auto-hide
   const handleMouseMove = useCallback(() => {

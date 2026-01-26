@@ -3,7 +3,7 @@ import { createGeminiClient, generateImage, ImageSize, AspectRatio } from "@/lib
 import { STYLES, SlideStyle } from "@/lib/styles";
 
 const DEFAULT_ASPECT_RATIO: AspectRatio = "16:9";
-const DEFAULT_IMAGE_SIZE: ImageSize = "2K";
+const DEFAULT_IMAGE_SIZE: ImageSize = "1K";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,9 +16,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { prompt, slideIndex, style, customStylePrompt, aspectRatio, imageSize } = await request.json();
+    const { prompt, slideId, style, customStylePrompt } = await request.json();
 
-    console.log("[generate-image] Request params:", { slideIndex, style, customStylePrompt: customStylePrompt?.slice(0, 50), aspectRatio, imageSize });
+    console.log("[generate-image] Request params:", { slideId, style, customStylePrompt: customStylePrompt?.slice(0, 50) });
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (typeof slideIndex !== "number") {
+    if (typeof slideId !== "string") {
       return NextResponse.json(
-        { error: "Slide index is required" },
+        { error: "Slide ID is required" },
         { status: 400 }
       );
     }
@@ -51,13 +51,13 @@ export async function POST(request: NextRequest) {
     const imageBase64 = await generateImage(
       client,
       enhancedPrompt,
-      aspectRatio || DEFAULT_ASPECT_RATIO,
-      imageSize || DEFAULT_IMAGE_SIZE
+      DEFAULT_ASPECT_RATIO,
+      DEFAULT_IMAGE_SIZE
     );
 
     return NextResponse.json({
       imageBase64,
-      slideIndex,
+      slideId,
     });
   } catch (error) {
     console.error("Image generation error:", error);

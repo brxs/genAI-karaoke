@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Presentation {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  topic             String
+  style             String
+  absurdity         Int
+  customStylePrompt String?  @map("custom_style_prompt")
+  context           String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  slides            Slide[]
+
+  @@index([userId])
+  @@index([updatedAt(sort: Desc)])
+  @@map("presentations")
+}
+
+model Slide {
+  id             String       @id @default(uuid())
+  presentationId String       @map("presentation_id")
+  slideNumber    Int          @map("slide_number")
+  title          String
+  bulletPoints   String[]     @map("bullet_points")
+  imagePrompt    String?      @map("image_prompt")
+  imageUrl       String?      @map("image_url")
+  imageError     String?      @map("image_error")
+  isTitleSlide   Boolean      @default(false) @map("is_title_slide")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  presentation   Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+
+  @@index([presentationId])
+  @@index([presentationId, slideNumber])
+  @@map("slides")
+}

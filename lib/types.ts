@@ -15,12 +15,14 @@ export interface Slide {
   title: string;
   bulletPoints: string[];
   imagePrompt?: string;
-  imageBase64?: string;
+  imageBase64?: string;  // Local state during generation
+  imageUrl?: string;     // Persisted URL from Supabase Storage
   imageError?: string;
   isTitleSlide?: boolean;
 }
 
 export interface Presentation {
+  id?: string;  // Database ID (undefined for new/unsaved)
   topic: string;
   style: import("./styles").SlideStyle;
   absurdity: import("./absurdity").AbsurdityLevel;
@@ -29,6 +31,8 @@ export interface Presentation {
   context?: string;
   attachedImages?: AttachedImage[];
   createdAt: Date;
+  updatedAt?: Date;
+  isSaved?: boolean;  // Track save state
 }
 
 export type GenerationStatus =

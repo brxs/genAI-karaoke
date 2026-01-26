@@ -22,13 +22,13 @@ import AddSlideCard from "./AddSlideCard";
 interface GridViewProps {
   slides: Slide[];
   topic: string;
-  onSlideClick: (index: number) => void;
-  onRetrySlide?: (index: number) => void;
-  onDeleteSlide?: (index: number) => void;
-  onRegenerateSlide?: (index: number) => void;
+  onSlideClick: (slideId: string) => void;
+  onRetrySlide?: (slideId: string) => void;
+  onDeleteSlide?: (slideId: string) => void;
+  onRegenerateSlide?: (slideId: string) => void;
   onReorderSlides?: (fromIndex: number, toIndex: number) => void;
   onAddSlide?: () => void;
-  onPlaySlide?: (index: number) => void;
+  onPlaySlide?: (index: number) => void; // Keep index for slideshow navigation
 }
 
 export default function GridView({
@@ -87,11 +87,11 @@ export default function GridView({
               <SortableSlideCard
                 key={slide.id}
                 slide={slide}
-                onClick={() => onSlideClick(index)}
-                onRetry={onRetrySlide ? () => onRetrySlide(index) : undefined}
-                onDelete={onDeleteSlide ? () => onDeleteSlide(index) : undefined}
-                onRegenerate={onRegenerateSlide ? () => onRegenerateSlide(index) : undefined}
-                onDownload={slide.imageBase64 ? (e) => handleDownload(e, slide) : undefined}
+                onClick={() => onSlideClick(slide.id)}
+                onRetry={onRetrySlide ? () => onRetrySlide(slide.id) : undefined}
+                onDelete={onDeleteSlide ? () => onDeleteSlide(slide.id) : undefined}
+                onRegenerate={onRegenerateSlide ? () => onRegenerateSlide(slide.id) : undefined}
+                onDownload={(slide.imageBase64 || slide.imageUrl) ? (e) => handleDownload(e, slide) : undefined}
                 onPlay={onPlaySlide ? () => onPlaySlide(index) : undefined}
                 disabled={slide.isTitleSlide} // Title slide can't be dragged
               />

@@ -17,8 +17,12 @@ export default function SlideCard({ slide, isFullScreen = false, isTrueFullscree
       : "w-full h-full max-w-5xl max-h-[80vh] mx-auto"
     : "w-full aspect-[16/9] cursor-pointer hover:ring-1 hover:ring-white/20 transition-all";
 
-  // When image is available, show full slide image
-  if (slide.imageBase64) {
+  // When image is available (either base64 or URL), show full slide image
+  const imageSrc = slide.imageBase64
+    ? `data:image/png;base64,${slide.imageBase64}`
+    : slide.imageUrl;
+
+  if (imageSrc) {
     return (
       <div
         onClick={onClick}
@@ -31,7 +35,7 @@ export default function SlideCard({ slide, isFullScreen = false, isTrueFullscree
           </span>
         </div>
         <img
-          src={`data:image/png;base64,${slide.imageBase64}`}
+          src={imageSrc}
           alt={slide.title}
           className="w-full h-full object-contain bg-black"
         />

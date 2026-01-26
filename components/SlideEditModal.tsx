@@ -12,20 +12,20 @@ interface SlideSuggestion {
 interface SlideEditModalProps {
   isOpen: boolean;
   slide: Slide | null;
-  slideIndex: number;
+  slideId: string | null;
   isRegenerating: boolean;
   topic?: string;
   existingTitles?: string[];
   onClose: () => void;
-  onSave: (slideIndex: number, updates: { title: string; bulletPoints: string[] }) => void;
-  onRegenerate: (slideIndex: number, updatedContent?: { title: string; bulletPoints: string[] }) => void;
-  onDelete?: (slideIndex: number) => void;
+  onSave: (slideId: string, updates: { title: string; bulletPoints: string[] }) => void;
+  onRegenerate: (slideId: string, updatedContent?: { title: string; bulletPoints: string[] }) => void;
+  onDelete?: (slideId: string) => void;
 }
 
 export default function SlideEditModal({
   isOpen,
   slide,
-  slideIndex,
+  slideId,
   isRegenerating,
   topic,
   existingTitles,
@@ -122,17 +122,18 @@ export default function SlideEditModal({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, title, bulletPoints, slideIndex]);
+  }, [isOpen, onClose, title, bulletPoints, slideId]);
 
   const handleSave = useCallback(() => {
+    if (!slideId) return;
     // Filter out empty bullet points
     const filteredBullets = bulletPoints.filter(b => b.trim());
-    onSave(slideIndex, {
+    onSave(slideId, {
       title: title.trim(),
       bulletPoints: filteredBullets.length > 0 ? filteredBullets : [""]
     });
     onClose();
-  }, [slideIndex, title, bulletPoints, onSave, onClose]);
+  }, [slideId, title, bulletPoints, onSave, onClose]);
 
   const handleBulletChange = (index: number, value: string) => {
     const newBullets = [...bulletPoints];
@@ -151,13 +152,14 @@ export default function SlideEditModal({
   };
 
   const handleRegenerate = () => {
+    if (!slideId) return;
     const filteredBullets = bulletPoints.filter(b => b.trim());
     const content = {
       title: title.trim(),
       bulletPoints: filteredBullets.length > 0 ? filteredBullets : [""]
     };
     // Pass content directly to avoid stale state issues
-    onRegenerate(slideIndex, content);
+    onRegenerate(slideId, content);
   };
 
   if (!isOpen || !slide) return null;
@@ -178,14 +180,14 @@ export default function SlideEditModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h2 className="text-xl font-semibold text-white">
-            {isNewSlide ? "Add New Slide" : isTitleSlide ? "Edit Title Slide" : `Edit Slide ${slideIndex}`}
+            {isNewSlide ? "Add New Slide" : isTitleSlide ? "Edit Title Slide" : `Edit Slide ${slide.slideNumber}`}
           </h2>
           <div className="flex items-center gap-2">
-            {canDelete && (
+            {canDelete && slideId && (
               <button
                 onClick={() => {
                   onClose();
-                  onDelete(slideIndex);
+                  onDelete(slideId);
                 }}
                 className="px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-sm"
               >
@@ -324,7 +326,7 @@ export default function SlideEditModal({
               )}
 
               {/* Regenerate Button - only show here if slide has an image */}
-              {slide.imageBase64 && (
+              {(slide.imageBase64 || slide.imageUrl) && (
                 <div className="pt-4 border-t border-white/10">
                   <button
                     onClick={handleRegenerate}
@@ -381,7 +383,7 @@ export default function SlideEditModal({
             Cancel
           </button>
           {/* Show Generate Image button in footer when no image exists */}
-          {!slide.imageBase64 && (
+          {!slide.imageBase64 && !slide.imageUrl && (
             <button
               onClick={handleRegenerate}
               disabled={isRegenerating || !title.trim()}

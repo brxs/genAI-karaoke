@@ -1,11 +1,42 @@
 import JSZip from "jszip";
 import { Slide } from "./types";
 
-export function downloadSlide(slide: Slide, topic: string): void {
-  if (!slide.imageBase64) return;
+// Helper to get image data as base64
+async function getImageBase64(slide: Slide): Promise<string | null> {
+  if (slide.imageBase64) return slide.imageBase64;
+  if (!slide.imageUrl) return null;
+
+  try {
+    const response = await fetch(slide.imageUrl);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        // Remove data URL prefix to get just the base64
+        const base64Data = base64.split(",")[1];
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Failed to fetch image:", error);
+    return null;
+  }
+}
+
+// Helper to check if slide has any image
+function hasImage(slide: Slide): boolean {
+  return !!(slide.imageBase64 || slide.imageUrl);
+}
+
+export async function downloadSlide(slide: Slide, topic: string): Promise<void> {
+  const base64 = await getImageBase64(slide);
+  if (!base64) return;
 
   const link = document.createElement("a");
-  link.href = `data:image/png;base64,${slide.imageBase64}`;
+  link.href = `data:image/png;base64,${base64}`;
   link.download = `${sanitizeFilename(topic)}-slide-${slide.slideNumber}.png`;
   document.body.appendChild(link);
   link.click();
@@ -13,7 +44,7 @@ export function downloadSlide(slide: Slide, topic: string): void {
 }
 
 export async function downloadAllSlides(slides: Slide[], topic: string): Promise<void> {
-  const slidesWithImages = slides.filter((s) => s.imageBase64);
+  const slidesWithImages = slides.filter(hasImage);
 
   if (slidesWithImages.length === 0) return;
 
@@ -22,15 +53,15 @@ export async function downloadAllSlides(slides: Slide[], topic: string): Promise
 
   if (!folder) return;
 
-  slidesWithImages.forEach((slide) => {
-    if (slide.imageBase64) {
-      folder.file(
-        `slide-${slide.slideNumber}.png`,
-        slide.imageBase64,
-        { base64: true }
-      );
-    }
-  });
+  // Fetch all images in parallel
+  await Promise.all(
+    slidesWithImages.map(async (slide) => {
+      const base64 = await getImageBase64(slide);
+      if (base64) {
+        folder.file(`slide-${slide.slideNumber}.png`, base64, { base64: true });
+      }
+    })
+  );
 
   const blob = await zip.generateAsync({ type: "blob" });
   const link = document.createElement("a");
@@ -43,7 +74,7 @@ export async function downloadAllSlides(slides: Slide[], topic: string): Promise
 }
 
 export async function downloadAsPDF(slides: Slide[], topic: string): Promise<void> {
-  const slidesWithImages = slides.filter((s) => s.imageBase64);
+  const slidesWithImages = slides.filter(hasImage);
 
   if (slidesWithImages.length === 0) return;
 
@@ -54,16 +85,18 @@ export async function downloadAsPDF(slides: Slide[], topic: string): Promise<voi
     format: [1920, 1080],
   });
 
-  slidesWithImages.forEach((slide, index) => {
+  // Fetch all images first
+  const imagesData = await Promise.all(
+    slidesWithImages.map(async (slide) => ({
+      slide,
+      base64: await getImageBase64(slide),
+    }))
+  );
+
+  imagesData.forEach(({ base64 }, index) => {
+    if (!base64) return;
     if (index > 0) pdf.addPage();
-    pdf.addImage(
-      `data:image/png;base64,${slide.imageBase64}`,
-      "PNG",
-      0,
-      0,
-      1920,
-      1080
-    );
+    pdf.addImage(`data:image/png;base64,${base64}`, "PNG", 0, 0, 1920, 1080);
   });
 
   pdf.save(`${sanitizeFilename(topic)}-slides.pdf`);

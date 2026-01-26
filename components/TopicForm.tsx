@@ -292,7 +292,7 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
               alt=""
               className={`w-7 h-7 ${isSpinning ? "animate-spin" : "group-hover:rotate-[360deg] transition-transform duration-700"}`}
             />
-            {isSpinning ? "Going Bananas..." : "I'm Feeling Lucky"}
+            {isSpinning ? "Going Bananas..." : "Go Bananas!"}
           </span>
           {/* Shine effect */}
           {!isSpinning && (
