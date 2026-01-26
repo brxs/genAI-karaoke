@@ -20,6 +20,7 @@ function createPrismaClient() {
     new Pool({
       connectionString,
       max: 10,
+      ssl: { rejectUnauthorized: false },
     });
 
   if (process.env.NODE_ENV !== "production") {
