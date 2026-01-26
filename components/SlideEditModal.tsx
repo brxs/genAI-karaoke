@@ -18,7 +18,7 @@ interface SlideEditModalProps {
   existingTitles?: string[];
   onClose: () => void;
   onSave: (slideIndex: number, updates: { title: string; bulletPoints: string[] }) => void;
-  onRegenerate: (slideIndex: number) => void;
+  onRegenerate: (slideIndex: number, updatedContent?: { title: string; bulletPoints: string[] }) => void;
   onDelete?: (slideIndex: number) => void;
 }
 
@@ -151,15 +151,13 @@ export default function SlideEditModal({
   };
 
   const handleRegenerate = () => {
-    // Save first if dirty
-    if (isDirty) {
-      const filteredBullets = bulletPoints.filter(b => b.trim());
-      onSave(slideIndex, {
-        title: title.trim(),
-        bulletPoints: filteredBullets.length > 0 ? filteredBullets : [""]
-      });
-    }
-    onRegenerate(slideIndex);
+    const filteredBullets = bulletPoints.filter(b => b.trim());
+    const content = {
+      title: title.trim(),
+      bulletPoints: filteredBullets.length > 0 ? filteredBullets : [""]
+    };
+    // Pass content directly to avoid stale state issues
+    onRegenerate(slideIndex, content);
   };
 
   if (!isOpen || !slide) return null;

@@ -412,25 +412,36 @@ export function usePresentation() {
   }, []);
 
   // Regenerate image prompt and image for a specific slide
-  const regenerateSlideWithNewPrompt = useCallback(async (slideIndex: number) => {
+  // Optional updatedContent parameter allows passing new content directly (avoids stale state issues)
+  const regenerateSlideWithNewPrompt = useCallback(async (
+    slideIndex: number,
+    updatedContent?: { title: string; bulletPoints: string[] }
+  ) => {
     if (!presentation) return;
 
     const slide = presentation.slides[slideIndex];
     if (!slide) return;
 
+    // Use updated content if provided, otherwise use current slide content
+    const title = updatedContent?.title ?? slide.title;
+    const bulletPoints = updatedContent?.bulletPoints ?? slide.bulletPoints;
+
     setRegeneratingSlide(slideIndex);
 
-    // Clear existing image to show loading state
+    // Clear existing image and update content if new content was provided
     setPresentation((prev) => {
       if (!prev) return null;
       const updatedSlides = [...prev.slides];
       updatedSlides[slideIndex] = {
         ...updatedSlides[slideIndex],
+        ...(updatedContent && { title, bulletPoints }),
         imagePrompt: undefined,
         imageBase64: undefined,
         imageError: undefined,
       };
-      return { ...prev, slides: updatedSlides };
+      // Update topic if title slide is edited
+      const newTopic = updatedContent?.title && slideIndex === 0 ? updatedContent.title : prev.topic;
+      return { ...prev, topic: newTopic, slides: updatedSlides };
     });
 
     try {
@@ -439,10 +450,10 @@ export function usePresentation() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: slide.title,
-          bulletPoints: slide.bulletPoints,
+          title,
+          bulletPoints,
           isTitleSlide: slide.isTitleSlide,
-          topic: presentation.topic,
+          topic: updatedContent?.title && slideIndex === 0 ? updatedContent.title : presentation.topic,
         }),
       });
 
