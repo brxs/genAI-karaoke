@@ -41,3 +41,57 @@ model Slide {
   @@index([presentationId, slideNumber])
   @@map("slides")
 }
+
+// Token system models
+// Available balance = SUM(purchases.tokensAmount) - SUM(usage.estimatedTokens where status='pending') - SUM(usage.tokensUsed where status='completed')
+
+model UserTokens {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  usage     TokenUsage[]
+  purchases TokenPurchase[]
+
+  @@map("user_tokens")
+}
+
+model TokenUsage {
+  id              String    @id @default(uuid())
+  userTokensId    String    @map("user_tokens_id")
+  presentationId  String?   @map("presentation_id")
+  operationType   String    @map("operation_type") // "outline", "image_prompts", "image"
+  estimatedTokens Int       @map("estimated_tokens") // Reserved before execution
+  tokensUsed      Int?      @map("tokens_used") // Actual usage after completion
+  status          String    @default("pending") // "pending", "completed", "failed"
+  metadata        Json?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  completedAt     DateTime? @map("completed_at")
+
+  userTokens UserTokens @relation(fields: [userTokensId], references: [id], onDelete: Cascade)
+
+  @@index([userTokensId])
+  @@index([userTokensId, status])
+  @@map("token_usage")
+}
+
+model TokenPurchase {
+  id                    String    @id @default(uuid())
+  userTokensId          String    @map("user_tokens_id")
+  stripePaymentIntentId String?   @unique @map("stripe_payment_intent_id")
+  stripeSessionId       String?   @unique @map("stripe_session_id")
+  packType              String    @map("pack_type") // "initial_credit", "starter", "standard", "pro"
+  tokensAmount          Int       @map("tokens_amount")
+  amountPaid            Int       @map("amount_paid") // In cents, 0 for initial_credit
+  currency              String    @default("usd")
+  status                String    @default("completed") // "pending", "completed", "failed", "refunded"
+  createdAt             DateTime  @default(now()) @map("created_at")
+  completedAt           DateTime? @map("completed_at")
+
+  userTokens UserTokens @relation(fields: [userTokensId], references: [id], onDelete: Cascade)
+
+  @@index([userTokensId])
+  @@index([status])
+  @@map("token_purchases")
+}

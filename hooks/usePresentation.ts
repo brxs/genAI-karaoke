@@ -7,6 +7,7 @@ import { CONCURRENT_IMAGE_REQUESTS, IMAGE_REQUEST_STAGGER_MS } from "@/lib/const
 import { useAuth } from "./useAuth";
 import { uploadSlideImage, deletePresentationImages } from "@/lib/supabase/storage";
 import { storage } from "@/lib/storage";
+import { getPreferredMode } from "@/lib/generationMode";
 
 // Debounce helper
 function debounce<T extends (...args: Parameters<T>) => void>(
@@ -89,7 +90,7 @@ export function usePresentation() {
       const outlineRes = await fetch("/api/generate-outline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, absurdity, maxBulletPoints, slideCount, context, attachedImages, useWebSearch }),
+        body: JSON.stringify({ topic, absurdity, maxBulletPoints, slideCount, context, attachedImages, useWebSearch, preferredMode: getPreferredMode() }),
         signal,
       });
 
@@ -133,6 +134,7 @@ export function usePresentation() {
         body: JSON.stringify({
           slides: outline.slides,
           visualImages: visualImages && visualImages.length > 0 ? visualImages : undefined,
+          preferredMode: getPreferredMode(),
         }),
         signal,
       });
@@ -180,6 +182,7 @@ export function usePresentation() {
               slideId: slide.id,
               style,
               customStylePrompt: style === "custom" ? customStylePrompt : undefined,
+              preferredMode: getPreferredMode(),
             }),
             signal,
           });
@@ -323,6 +326,7 @@ export function usePresentation() {
           slideId,
           style: presentation.style,
           customStylePrompt: presentation.style === "custom" ? presentation.customStylePrompt : undefined,
+          preferredMode: getPreferredMode(),
         }),
       });
 
@@ -528,6 +532,7 @@ export function usePresentation() {
           bulletPoints,
           isTitleSlide: slide.isTitleSlide,
           topic: updatedContent?.title && slide.isTitleSlide ? updatedContent.title : presentation.topic,
+          preferredMode: getPreferredMode(),
         }),
       });
 
@@ -558,6 +563,7 @@ export function usePresentation() {
           slideId,
           style: presentation.style,
           customStylePrompt: presentation.style === "custom" ? presentation.customStylePrompt : undefined,
+          preferredMode: getPreferredMode(),
         }),
       });
 

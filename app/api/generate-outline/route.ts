@@ -4,19 +4,21 @@ import { buildOutlineSystemPrompt } from "@/lib/prompts";
 import { OutlineResponseSchema, type OutlineResponse } from "@/lib/schemas";
 import { AbsurdityLevel, getAbsurdityConfig } from "@/lib/absurdity";
 import type { AttachedImage } from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getAvailableBalance,
+  reserveTokens,
+  completeUsage,
+  failUsage,
+  TOKEN_COSTS,
+} from "@/lib/tokens";
 
 export async function POST(request: NextRequest) {
+  let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;
+
   try {
-    const apiKey = request.cookies.get("google_ai_api_key")?.value;
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "API key not found. Please set your API key first." },
-        { status: 401 }
-      );
-    }
-
-    const { topic, absurdity = 3, maxBulletPoints = 3, slideCount = 7, context, attachedImages, useWebSearch = true } = await request.json() as {
+    // Parse request body first to get user's preferred mode
+    const body = await request.json() as {
       topic: string;
       absurdity?: number;
       maxBulletPoints?: number;
@@ -24,7 +26,66 @@ export async function POST(request: NextRequest) {
       context?: string;
       attachedImages?: AttachedImage[];
       useWebSearch?: boolean;
+      preferredMode?: "tokens" | "byok";
     };
+
+    // Check for BYOK cookie
+    const cookieApiKey = request.cookies.get("google_ai_api_key")?.value;
+
+    // Use BYOK if user prefers it AND has a key, or if no preference specified and has a key
+    const prefersBYOK = body.preferredMode === "byok" || (body.preferredMode === undefined && !!cookieApiKey);
+    let apiKey = prefersBYOK ? cookieApiKey : undefined;
+    const useBYOK = !!apiKey;
+
+    if (!useBYOK) {
+      // Token mode - check for authenticated user with balance
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json(
+          { error: "Please sign in or set your API key to generate presentations." },
+          { status: 401 }
+        );
+      }
+
+      const available = await getAvailableBalance(user.id);
+      const estimatedCost = TOKEN_COSTS.outline;
+
+      if (available < estimatedCost) {
+        return NextResponse.json(
+          {
+            error: "Insufficient tokens",
+            code: "INSUFFICIENT_TOKENS",
+            available,
+            required: estimatedCost,
+          },
+          { status: 402 }
+        );
+      }
+
+      // Reserve tokens before execution
+      usageRecord = await reserveTokens(
+        user.id,
+        estimatedCost,
+        "outline"
+      );
+
+      // Use server-side API key
+      apiKey = process.env.GEMINI_API_KEY;
+
+      if (!apiKey) {
+        await failUsage(usageRecord.id);
+        return NextResponse.json(
+          { error: "Server API key not configured" },
+          { status: 500 }
+        );
+      }
+    }
+
+    const { topic, absurdity = 3, maxBulletPoints = 3, slideCount = 7, context, attachedImages, useWebSearch = true } = body;
 
     console.log("[generate-outline] Request params:", { topic, absurdity, maxBulletPoints, slideCount, hasContext: !!context, imageCount: attachedImages?.length || 0, useWebSearch });
 
@@ -36,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
 
     const absurdityConfig = getAbsurdityConfig(absurdity as AbsurdityLevel);
-    const client = createGeminiClient(apiKey);
+    const client = createGeminiClient(apiKey!);
 
     // Build the system prompt dynamically from absurdity config
     const basePrompt = buildOutlineSystemPrompt(absurdityConfig.prompt);
@@ -74,15 +135,27 @@ export async function POST(request: NextRequest) {
 
     // Validate response structure
     if (!outline.slides || !Array.isArray(outline.slides) || outline.slides.length !== slideCount) {
+      if (usageRecord) {
+        await failUsage(usageRecord.id);
+      }
       return NextResponse.json(
         { error: "Invalid outline format received" },
         { status: 500 }
       );
     }
 
+    // Mark usage as completed with actual token cost
+    if (usageRecord) {
+      await completeUsage(usageRecord.id, TOKEN_COSTS.outline);
+    }
+
     return NextResponse.json(outline);
   } catch (error) {
     console.error("Outline generation error:", error);
+    // Release reserved tokens on failure
+    if (usageRecord) {
+      await failUsage(usageRecord.id);
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate outline" },
       { status: 500 }

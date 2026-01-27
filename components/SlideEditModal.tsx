@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Slide } from "@/lib/types";
 import SlideCard from "./SlideCard";
+import { getPreferredMode } from "@/lib/generationMode";
+import { TOKEN_COSTS } from "@/hooks/useTokens";
 
 interface SlideSuggestion {
   title: string;
@@ -53,12 +55,6 @@ export default function SlideEditModal({
     }
   }, [slide]);
 
-  // Fetch suggestions for new slides
-  useEffect(() => {
-    if (isOpen && isNewSlide && topic && suggestions.length === 0 && !isLoadingSuggestions) {
-      fetchSuggestions();
-    }
-  }, [isOpen, isNewSlide, topic]);
 
   // Reset suggestions when modal closes
   useEffect(() => {
@@ -78,7 +74,7 @@ export default function SlideEditModal({
       const res = await fetch("/api/generate-slide-suggestions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, existingTitles }),
+        body: JSON.stringify({ topic, existingTitles, preferredMode: getPreferredMode() }),
       });
 
       if (!res.ok) {
@@ -213,9 +209,20 @@ export default function SlideEditModal({
               {/* Suggestions for new slides */}
               {isNewSlide && !isTitleSlide && (
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-3">
-                    Suggested Slides
-                  </label>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium text-white/70">
+                      Suggested Slides
+                    </label>
+                    {suggestions.length === 0 && !isLoadingSuggestions && (
+                      <button
+                        onClick={fetchSuggestions}
+                        disabled={!topic}
+                        className="px-3 py-1.5 text-xs text-white/60 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Generate Ideas ({TOKEN_COSTS.outline} tokens)
+                      </button>
+                    )}
+                  </div>
                   {isLoadingSuggestions && (
                     <div className="flex items-center gap-3 text-white/50 text-sm py-4">
                       <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
@@ -232,6 +239,11 @@ export default function SlideEditModal({
                         Retry
                       </button>
                     </div>
+                  )}
+                  {suggestions.length === 0 && !isLoadingSuggestions && !suggestionsError && (
+                    <p className="text-white/40 text-sm py-2">
+                      Click &quot;Generate Ideas&quot; to get AI-powered slide suggestions, or create your own below.
+                    </p>
                   )}
                   {suggestions.length > 0 && (
                     <div className="space-y-2">

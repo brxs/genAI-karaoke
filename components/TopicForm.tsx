@@ -10,6 +10,9 @@ import AbsurditySlider from "./AbsurditySlider";
 import BulletPointsSlider, { BulletPointsCount, DEFAULT_BULLET_POINTS } from "./BulletPointsSlider";
 import SlideCountSlider, { SlideCount, DEFAULT_SLIDE_COUNT } from "./SlideCountSlider";
 import { MAX_TOPIC_LENGTH, MAX_CONTEXT_LENGTH, MAX_IMAGES, MAX_FILE_SIZE, ALLOWED_IMAGE_TYPES } from "@/lib/constants";
+import { useAuth } from "@/hooks/useAuth";
+import { useTokens, estimatePresentationCost } from "@/hooks/useTokens";
+import { usePreferredMode } from "@/hooks/usePreferredMode";
 
 interface TopicFormProps {
   onSubmit: (topic: string, style: SlideStyle, absurdity: AbsurdityLevel, maxBulletPoints: BulletPointsCount, slideCount: SlideCount, customStylePrompt?: string, context?: string, attachedImages?: AttachedImage[], useWebSearch?: boolean) => void;
@@ -102,6 +105,18 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
   const [isSpinning, setIsSpinning] = useState(false);
   const spinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Token system
+  const { user } = useAuth();
+  const { balance } = useTokens();
+  const { preferredMode } = usePreferredMode();
+
+  const estimatedCost = estimatePresentationCost(slideCount);
+  // Use tokens if user is logged in and prefers token mode
+  const useTokenMode = user !== null && preferredMode === "tokens";
+  // Use BYOK if user prefers it and has an API key
+  const useBYOKMode = preferredMode === "byok" && hasApiKey;
+  const hasInsufficientTokens = useTokenMode && balance !== null && balance < estimatedCost;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -518,9 +533,25 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
         )}
       </div>
 
+      {/* Mode indicator */}
+      {(useBYOKMode || useTokenMode) && (
+        <div className="mb-3 text-center text-sm">
+          {useBYOKMode ? (
+            <span className="text-white/40">Using your API key</span>
+          ) : (
+            <span className="text-white/40">
+              Cost: <span className="text-white/70 font-medium">{estimatedCost} tokens</span>
+              {balance !== null && (
+                <span className="text-white/30"> (balance: {balance.toLocaleString()})</span>
+              )}
+            </span>
+          )}
+        </div>
+      )}
+
       <button
         type="submit"
-        disabled={!topic.trim() || isLoading || isSpinning || isCustomMissingPrompt || !hasApiKey}
+        disabled={!topic.trim() || isLoading || isSpinning || isCustomMissingPrompt || (!useBYOKMode && !useTokenMode) || hasInsufficientTokens}
         className="w-full py-4 px-6 text-black text-lg font-bold rounded-2xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
         style={{
           background: "linear-gradient(180deg, #ffffff 0%, #e4e4e7 100%)",
@@ -530,17 +561,57 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
         {isLoading ? "Generating..." : "Generate Slides"}
       </button>
 
-      {!hasApiKey && (
+      {/* Insufficient tokens warning */}
+      {hasInsufficientTokens && (
         <p className="mt-3 text-center text-sm text-amber-400/80">
-          Please{" "}
+          Not enough tokens. You need {estimatedCost} but have {balance}.{" "}
           <button
             type="button"
             onClick={onSetApiKey}
             className="underline hover:text-amber-300 transition-colors"
           >
-            set your API key
+            Buy more tokens
           </button>{" "}
-          to generate slides.
+          or set your own API key.
+        </p>
+      )}
+
+      {/* No auth message */}
+      {!useBYOKMode && !useTokenMode && (
+        <p className="mt-3 text-center text-sm text-amber-400/80">
+          {preferredMode === "byok" ? (
+            <>
+              Please{" "}
+              <button
+                type="button"
+                onClick={onSetApiKey}
+                className="underline hover:text-amber-300 transition-colors"
+              >
+                set your API key
+              </button>{" "}
+              to generate slides, or{" "}
+              <button
+                type="button"
+                onClick={onSetApiKey}
+                className="underline hover:text-amber-300 transition-colors"
+              >
+                switch to token mode
+              </button>
+              .
+            </>
+          ) : (
+            <>
+              Please{" "}
+              <button
+                type="button"
+                onClick={onSetApiKey}
+                className="underline hover:text-amber-300 transition-colors"
+              >
+                sign in
+              </button>{" "}
+              to use tokens, or set your own API key.
+            </>
+          )}
         </p>
       )}
 

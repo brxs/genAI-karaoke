@@ -56,6 +56,16 @@ export async function generateText(
     },
   });
 
+  // Log usage metadata for token cost analysis
+  if (response.usageMetadata) {
+    console.log("[GEMINI_USAGE] generateText:", {
+      model: "gemini-3-pro-preview",
+      promptTokenCount: response.usageMetadata.promptTokenCount,
+      candidatesTokenCount: response.usageMetadata.candidatesTokenCount,
+      totalTokenCount: response.usageMetadata.totalTokenCount,
+    });
+  }
+
   const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) {
     throw new Error("No text response from Gemini");
@@ -98,6 +108,17 @@ export async function generateStructuredOutput<T>(
     },
   });
 
+  // Log usage metadata for token cost analysis
+  if (response.usageMetadata) {
+    console.log("[GEMINI_USAGE] generateStructuredOutput:", {
+      model: "gemini-3-pro-preview",
+      promptTokenCount: response.usageMetadata.promptTokenCount,
+      candidatesTokenCount: response.usageMetadata.candidatesTokenCount,
+      totalTokenCount: response.usageMetadata.totalTokenCount,
+      imageCount: options?.images?.length || 0,
+    });
+  }
+
   const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) {
     throw new Error("No text response from Gemini");
@@ -127,6 +148,18 @@ export async function generateImage(
         },
       },
     });
+
+    // Log usage metadata for token cost analysis
+    if (response.usageMetadata) {
+      console.log("[GEMINI_USAGE] generateImage:", {
+        model: "gemini-3-pro-image-preview",
+        promptTokenCount: response.usageMetadata.promptTokenCount,
+        candidatesTokenCount: response.usageMetadata.candidatesTokenCount,
+        totalTokenCount: response.usageMetadata.totalTokenCount,
+        aspectRatio,
+        imageSize,
+      });
+    }
 
     const parts = response.candidates?.[0]?.content?.parts;
     if (!parts) {

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createGeminiClient, generateStructuredOutput } from "@/lib/gemini";
 import { Type, type Static } from "@sinclair/typebox";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getAvailableBalance,
+  reserveTokens,
+  completeUsage,
+  failUsage,
+  TOKEN_COSTS,
+} from "@/lib/tokens";
 
 const SingleImagePromptResponseSchema = Type.Object({
   imagePrompt: Type.String(),
@@ -23,19 +31,76 @@ Return a single image prompt for the slide provided.`;
 
 export async function POST(request: NextRequest) {
   console.log("[generate-single-image-prompt] POST request received");
+  let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;
 
   try {
-    const apiKey = request.cookies.get("google_ai_api_key")?.value;
+    // Parse request body first to get user's preferred mode
+    const body = await request.json() as {
+      title: string;
+      bulletPoints?: string[];
+      isTitleSlide?: boolean;
+      topic?: string;
+      preferredMode?: "tokens" | "byok";
+    };
 
-    if (!apiKey) {
-      console.log("[generate-single-image-prompt] No API key found");
-      return NextResponse.json(
-        { error: "API key not found. Please set your API key first." },
-        { status: 401 }
+    // Check for BYOK cookie
+    const cookieApiKey = request.cookies.get("google_ai_api_key")?.value;
+
+    // Use BYOK if user prefers it AND has a key, or if no preference specified and has a key
+    const prefersBYOK = body.preferredMode === "byok" || (body.preferredMode === undefined && !!cookieApiKey);
+    let apiKey = prefersBYOK ? cookieApiKey : undefined;
+    const useBYOK = !!apiKey;
+
+    if (!useBYOK) {
+      // Token mode - check for authenticated user with balance
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json(
+          { error: "Please sign in or set your API key to generate image prompts." },
+          { status: 401 }
+        );
+      }
+
+      const available = await getAvailableBalance(user.id);
+      // Use a fraction of imagePrompts cost for single prompt (1 token minimum)
+      const estimatedCost = 1;
+
+      if (available < estimatedCost) {
+        return NextResponse.json(
+          {
+            error: "Insufficient tokens",
+            code: "INSUFFICIENT_TOKENS",
+            available,
+            required: estimatedCost,
+          },
+          { status: 402 }
+        );
+      }
+
+      // Reserve tokens before execution
+      usageRecord = await reserveTokens(
+        user.id,
+        estimatedCost,
+        "imagePrompts"
       );
+
+      // Use server-side API key
+      apiKey = process.env.GEMINI_API_KEY;
+
+      if (!apiKey) {
+        await failUsage(usageRecord.id);
+        return NextResponse.json(
+          { error: "Server API key not configured" },
+          { status: 500 }
+        );
+      }
     }
 
-    const { title, bulletPoints, isTitleSlide, topic } = await request.json();
+    const { title, bulletPoints, isTitleSlide, topic } = body;
 
     console.log("[generate-single-image-prompt] Request params:", {
       title,
@@ -46,20 +111,28 @@ export async function POST(request: NextRequest) {
 
     if (!title) {
       console.log("[generate-single-image-prompt] Missing title");
+      if (usageRecord) {
+        await failUsage(usageRecord.id);
+      }
       return NextResponse.json(
         { error: "Title is required" },
         { status: 400 }
       );
     }
 
-    // For title slides, generate a special prompt
+    // For title slides, generate a special prompt (no API call needed)
     if (isTitleSlide) {
+      // Complete usage with minimal cost since no API call
+      if (usageRecord) {
+        await completeUsage(usageRecord.id, 1);
+      }
       const imagePrompt = `A bold, eye-catching title slide for a presentation called "${title}". The title "${title}" should be prominently displayed in large, clear text. Professional presentation design with dramatic visual impact.`;
       console.log("[generate-single-image-prompt] Generated title slide prompt");
       return NextResponse.json({ imagePrompt });
     }
 
-    const client = createGeminiClient(apiKey);
+    // At this point apiKey is guaranteed to be defined (either from cookie or env)
+    const client = createGeminiClient(apiKey!);
 
     const slideDescription = `Slide: "${title}"\n- ${(bulletPoints || []).join("\n- ")}`;
     const userPrompt = `Generate an image prompt for this presentation slide:\n\n${slideDescription}`;
@@ -74,16 +147,27 @@ export async function POST(request: NextRequest) {
 
     if (!result.imagePrompt) {
       console.log("[generate-single-image-prompt] Invalid response format:", result);
+      if (usageRecord) {
+        await failUsage(usageRecord.id);
+      }
       return NextResponse.json(
         { error: "Invalid image prompt format received" },
         { status: 500 }
       );
     }
 
+    // Complete usage record
+    if (usageRecord) {
+      await completeUsage(usageRecord.id, 1);
+    }
+
     console.log("[generate-single-image-prompt] Successfully generated prompt:", result.imagePrompt.substring(0, 100) + "...");
     return NextResponse.json(result);
   } catch (error) {
     console.error("[generate-single-image-prompt] Error:", error);
+    if (usageRecord) {
+      await failUsage(usageRecord.id);
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate image prompt" },
       { status: 500 }
