@@ -6,6 +6,7 @@ import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptRespo
 import { CONCURRENT_IMAGE_REQUESTS } from "@/lib/constants";
 import { useAuth } from "./useAuth";
 import { uploadSlideImage, deletePresentationImages } from "@/lib/supabase/storage";
+import { storage } from "@/lib/storage";
 
 // Debounce helper
 function debounce<T extends (...args: Parameters<T>) => void>(
@@ -45,6 +46,8 @@ export function usePresentation() {
   const lastSavedContentRef = useRef<string | null>(null);
   // Track when images need uploading (after regeneration)
   const needsImageUploadRef = useRef(false);
+  // Track if we've already attempted to auto-load from localStorage
+  const autoLoadAttemptedRef = useRef(false);
 
   // Generate a content hash to detect actual changes (excludes metadata like imageUrl, isSaved)
   const getContentHash = useCallback((p: Presentation | null) => {
@@ -283,6 +286,8 @@ export function usePresentation() {
 
     setPresentation(null);
     setGenerationState({ status: "idle", totalSlides: 7 });
+    // Clear active presentation from localStorage
+    storage.clearActivePresentationId();
   }, []);
 
   const regenerateSlideImage = useCallback(async (slideId: string) => {
@@ -635,6 +640,9 @@ export function usePresentation() {
 
         // Update state with the new ID
         setPresentation((prev) => prev ? { ...prev, id: saved.id } : null);
+
+        // Persist active presentation ID to localStorage
+        storage.setActivePresentationId(saved.id);
       }
 
       // Now upload any images that don't have URLs yet
@@ -785,6 +793,8 @@ export function usePresentation() {
         // Set content hash so we don't immediately re-save
         lastSavedContentRef.current = getContentHash(loadedPresentation);
         shouldAutoSaveRef.current = true;
+        // Persist active presentation ID to localStorage
+        storage.setActivePresentationId(presentationId);
       } catch (error) {
         console.error("Load error:", error);
         toast.error("Failed to load presentation");
@@ -877,6 +887,18 @@ export function usePresentation() {
       savePresentation(true); // silent save to upload images
     }
   }, [presentation?.slides, user, presentation?.isSaved, savePresentation]);
+
+  // Auto-load presentation from localStorage on mount (when user is authenticated)
+  useEffect(() => {
+    // Only attempt once, skip if no user or already have a presentation
+    if (autoLoadAttemptedRef.current || !user || presentation) return;
+    autoLoadAttemptedRef.current = true;
+
+    const savedId = storage.getActivePresentationId();
+    if (savedId) {
+      loadPresentation(savedId);
+    }
+  }, [user, presentation, loadPresentation]);
 
   return {
     presentation,

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { storage } from "@/lib/storage";
 
 interface AuthContextType {
   user: User | null;
@@ -63,6 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    // Clear active presentation from localStorage
+    storage.clearActivePresentationId();
   }, [supabase.auth]);
 
   return (

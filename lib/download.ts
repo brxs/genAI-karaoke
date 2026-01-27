@@ -1,6 +1,11 @@
 import JSZip from "jszip";
 import { Slide } from "./types";
 
+// SSR safety check
+function isClient(): boolean {
+  return typeof document !== "undefined";
+}
+
 // Helper to get image data as base64
 async function getImageBase64(slide: Slide): Promise<string | null> {
   if (slide.imageBase64) return slide.imageBase64;
@@ -32,6 +37,8 @@ function hasImage(slide: Slide): boolean {
 }
 
 export async function downloadSlide(slide: Slide, topic: string): Promise<void> {
+  if (!isClient()) return;
+
   const base64 = await getImageBase64(slide);
   if (!base64) return;
 
@@ -44,6 +51,8 @@ export async function downloadSlide(slide: Slide, topic: string): Promise<void> 
 }
 
 export async function downloadAllSlides(slides: Slide[], topic: string): Promise<void> {
+  if (!isClient()) return;
+
   const slidesWithImages = slides.filter(hasImage);
 
   if (slidesWithImages.length === 0) return;
@@ -74,6 +83,8 @@ export async function downloadAllSlides(slides: Slide[], topic: string): Promise
 }
 
 export async function downloadAsPDF(slides: Slide[], topic: string): Promise<void> {
+  if (!isClient()) return;
+
   const slidesWithImages = slides.filter(hasImage);
 
   if (slidesWithImages.length === 0) return;
