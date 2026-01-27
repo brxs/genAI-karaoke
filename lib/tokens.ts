@@ -28,25 +28,8 @@ export async function getOrCreateUserTokens(
   });
 
   if (!userTokens) {
-    // Create UserTokens and initial credit in a transaction
-    userTokens = await prisma.$transaction(async (tx) => {
-      const newUserTokens = await tx.userTokens.create({
-        data: { userId },
-      });
-
-      // Grant initial credit
-      await tx.tokenPurchase.create({
-        data: {
-          userTokensId: newUserTokens.id,
-          packType: "initial_credit",
-          tokensAmount: TOKEN_PACKS.initial_credit.tokens,
-          amountPaid: 0,
-          status: "completed",
-          completedAt: new Date(),
-        },
-      });
-
-      return newUserTokens;
+    userTokens = await prisma.userTokens.create({
+      data: { userId },
     });
   }
 
@@ -215,34 +198,3 @@ export async function getPurchaseHistory(
   });
 }
 
-/**
- * Grant initial credit to an existing user (for migration)
- */
-export async function grantInitialCredit(userId: string): Promise<boolean> {
-  const userTokens = await getOrCreateUserTokens(userId);
-
-  // Check if user already has initial credit
-  const existingCredit = await prisma.tokenPurchase.findFirst({
-    where: {
-      userTokensId: userTokens.id,
-      packType: "initial_credit",
-    },
-  });
-
-  if (existingCredit) {
-    return false; // Already has initial credit
-  }
-
-  await prisma.tokenPurchase.create({
-    data: {
-      userTokensId: userTokens.id,
-      packType: "initial_credit",
-      tokensAmount: TOKEN_PACKS.initial_credit.tokens,
-      amountPaid: 0,
-      status: "completed",
-      completedAt: new Date(),
-    },
-  });
-
-  return true;
-}

@@ -72,7 +72,6 @@ export default function TokenBalance() {
 
               <div className="space-y-3">
                 {(Object.entries(TOKEN_PACKS) as [PackType, typeof TOKEN_PACKS[PackType]][])
-                  .filter(([type]) => type !== "initial_credit")
                   .map(([type, pack]) => (
                     <button
                       key={type}

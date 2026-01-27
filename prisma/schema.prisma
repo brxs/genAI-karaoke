@@ -81,9 +81,9 @@ model TokenPurchase {
   userTokensId          String    @map("user_tokens_id")
   stripePaymentIntentId String?   @unique @map("stripe_payment_intent_id")
   stripeSessionId       String?   @unique @map("stripe_session_id")
-  packType              String    @map("pack_type") // "initial_credit", "starter", "standard", "pro"
+  packType              String    @map("pack_type") // "starter", "standard", "pro"
   tokensAmount          Int       @map("tokens_amount")
-  amountPaid            Int       @map("amount_paid") // In cents, 0 for initial_credit
+  amountPaid            Int       @map("amount_paid") // In cents
   currency              String    @default("usd")
   status                String    @default("completed") // "pending", "completed", "failed", "refunded"
   createdAt             DateTime  @default(now()) @map("created_at")

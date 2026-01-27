@@ -17,7 +17,7 @@ export async function createCheckoutSession(
 ): Promise<Stripe.Checkout.Session> {
   const pack = TOKEN_PACKS[packType];
 
-  if (!pack || pack.price === 0) {
+  if (!pack) {
     throw new Error(`Invalid pack type: ${packType}`);
   }
 

@@ -10,7 +10,6 @@ export type OperationType = keyof typeof TOKEN_COSTS;
 
 // Token pack definitions
 export const TOKEN_PACKS = {
-  initial_credit: { tokens: 400, price: 0, name: "Welcome Credit" },
   starter: { tokens: 1000, price: 499, name: "Starter Pack" },
   standard: { tokens: 3000, price: 1299, name: "Standard Pack" },
   pro: { tokens: 10000, price: 3999, name: "Pro Pack" },

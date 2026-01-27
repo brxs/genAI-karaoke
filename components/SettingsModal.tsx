@@ -209,7 +209,6 @@ export default function SettingsModal({
                 <div className="space-y-2">
                   <p className="text-xs text-white/40">Buy more tokens</p>
                   {(Object.entries(TOKEN_PACKS) as [PackType, typeof TOKEN_PACKS[PackType]][])
-                    .filter(([type]) => type !== "initial_credit")
                     .map(([type, pack]) => (
                       <button
                         key={type}

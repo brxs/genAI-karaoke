@@ -25,14 +25,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Don't allow purchasing initial_credit
-    if (packType === "initial_credit") {
-      return NextResponse.json(
-        { error: "Cannot purchase initial credit" },
-        { status: 400 }
-      );
-    }
-
     // Get the origin for success/cancel URLs
     const origin = request.headers.get("origin") || "https://banana.fyi";
     const successUrl = `${origin}?purchase=success&session_id={CHECKOUT_SESSION_ID}`;
