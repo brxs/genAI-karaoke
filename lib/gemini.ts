@@ -2,6 +2,40 @@ import { GoogleGenAI, Tool, Part } from "@google/genai";
 import type { TObject } from "@sinclair/typebox";
 import type { AttachedImage } from "./types";
 
+// Retry helper with exponential backoff
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelayMs: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Only retry on network/transient errors
+      const isRetryable =
+        lastError.message.includes("fetch failed") ||
+        lastError.message.includes("ECONNRESET") ||
+        lastError.message.includes("ETIMEDOUT") ||
+        lastError.message.includes("network");
+
+      if (!isRetryable || attempt === maxRetries - 1) {
+        throw lastError;
+      }
+
+      // Exponential backoff: 1s, 2s, 4s...
+      const delay = baseDelayMs * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
+
 export function createGeminiClient(apiKey: string) {
   return new GoogleGenAI({ apiKey });
 }
@@ -81,30 +115,32 @@ export async function generateImage(
   aspectRatio: AspectRatio = "16:9",
   imageSize: ImageSize = "2K"
 ): Promise<string> {
-  const response = await client.models.generateContent({
-    model: "gemini-3-pro-image-preview",
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    config: {
-      responseModalities: ["IMAGE"],
-      imageConfig: {
-        aspectRatio,
-        imageSize,
+  return withRetry(async () => {
+    const response = await client.models.generateContent({
+      model: "gemini-3-pro-image-preview",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        responseModalities: ["IMAGE"],
+        imageConfig: {
+          aspectRatio,
+          imageSize,
+        },
       },
-    },
-  });
+    });
 
-  const parts = response.candidates?.[0]?.content?.parts;
-  if (!parts) {
-    throw new Error("No response from Nano Banana");
-  }
-
-  for (const part of parts) {
-    if (part.inlineData?.data) {
-      return part.inlineData.data;
+    const parts = response.candidates?.[0]?.content?.parts;
+    if (!parts) {
+      throw new Error("No response from Nano Banana");
     }
-  }
 
-  throw new Error("No image data in response");
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        return part.inlineData.data;
+      }
+    }
+
+    throw new Error("No image data in response");
+  });
 }
 
 export function parseJsonResponse<T>(text: string): T {

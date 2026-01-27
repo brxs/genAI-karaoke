@@ -12,3 +12,4 @@ export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "ima
 
 // Generation settings
 export const CONCURRENT_IMAGE_REQUESTS = 4;
+export const IMAGE_REQUEST_STAGGER_MS = 150; // Delay between starting each worker

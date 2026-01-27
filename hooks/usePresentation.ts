@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Slide, Presentation, GenerationState, OutlineResponse, ImagePromptResponse, SlideStyle, AbsurdityLevel, AttachedImage } from "@/lib/types";
-import { CONCURRENT_IMAGE_REQUESTS } from "@/lib/constants";
+import { CONCURRENT_IMAGE_REQUESTS, IMAGE_REQUEST_STAGGER_MS } from "@/lib/constants";
 import { useAuth } from "./useAuth";
 import { uploadSlideImage, deletePresentationImages } from "@/lib/supabase/storage";
 import { storage } from "@/lib/storage";
@@ -232,7 +232,12 @@ export function usePresentation() {
       const processQueue = async () => {
         const queue = [...slidesToProcess];
 
-        const workers = Array.from({ length: CONCURRENT_IMAGE_REQUESTS }, async () => {
+        const workers = Array.from({ length: CONCURRENT_IMAGE_REQUESTS }, async (_, workerIndex) => {
+          // Stagger worker start times to avoid burst of concurrent requests
+          if (workerIndex > 0) {
+            await new Promise(resolve => setTimeout(resolve, workerIndex * IMAGE_REQUEST_STAGGER_MS));
+          }
+
           while (queue.length > 0 && !signal.aborted) {
             const slide = queue.shift();
             if (!slide) break;
