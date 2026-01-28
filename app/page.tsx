@@ -504,6 +504,13 @@ export default function Home() {
             </a>
             <span className="text-white/20">•</span>
             <a
+              href="/impressum"
+              className="text-white/40 hover:text-white/70 transition-colors"
+            >
+              Imprint
+            </a>
+            <span className="text-white/20">•</span>
+            <a
               href="https://x.com/memetic_mystic"
               target="_blank"
               rel="noopener noreferrer"
