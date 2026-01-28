@@ -23,7 +23,7 @@ export default function TermsPage() {
 
         <div className="prose prose-invert prose-zinc max-w-none">
           <p className="text-white/70 text-lg mb-6">
-            Last updated: January 26, 2025
+            Last updated: January 28, 2025
           </p>
 
           <section className="mb-8">
@@ -49,8 +49,12 @@ export default function TermsPage() {
               <li>Export presentations as PDF or image files</li>
             </ul>
             <p className="text-white/60 mb-4">
-              The Service uses Google&apos;s Gemini AI for text and image generation. You must provide your own Google AI API key to use the generation features.
+              The Service uses Google&apos;s Gemini AI for text and image generation. You can use the Service in two ways:
             </p>
+            <ul className="list-disc list-inside text-white/60 mb-4 space-y-2">
+              <li><strong>Token Mode:</strong> Purchase tokens through our platform to generate content using our API infrastructure</li>
+              <li><strong>Bring Your Own Key (BYOK):</strong> Provide your own Google AI API key to use the generation features directly</li>
+            </ul>
           </section>
 
           <section className="mb-8">
@@ -70,9 +74,27 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">4. API Key Usage</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">4. Token Purchases and Payments</h2>
             <p className="text-white/60 mb-4">
-              The Service requires a Google AI API key to generate content. Regarding your API key:
+              The Service offers token packs that can be purchased to generate content. Regarding token purchases:
+            </p>
+            <ul className="list-disc list-inside text-white/60 mb-4 space-y-2">
+              <li><strong>Pricing:</strong> Token pack prices are displayed at the time of purchase and may change without notice. Changes do not affect previously purchased tokens.</li>
+              <li><strong>Payment Processing:</strong> Payments are processed securely by Stripe. We do not store your credit card information.</li>
+              <li><strong>Token Usage:</strong> Tokens are consumed when generating content. The number of tokens required varies by operation and is displayed before generation.</li>
+              <li><strong>No Expiration:</strong> Purchased tokens do not expire as long as your account remains active.</li>
+              <li><strong>No Refunds:</strong> All token purchases are final. Tokens are non-refundable and cannot be exchanged for cash.</li>
+              <li><strong>Account Termination:</strong> If your account is terminated, any remaining tokens will be forfeited.</li>
+            </ul>
+            <p className="text-white/60 mb-4">
+              By purchasing tokens, you agree to Stripe&apos;s <a href="https://stripe.com/legal/consumer" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">Terms of Service</a>.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold text-white mb-4">5. API Key Usage (BYOK Mode)</h2>
+            <p className="text-white/60 mb-4">
+              Alternatively, you may use your own Google AI API key to generate content. Regarding your API key:
             </p>
             <ul className="list-disc list-inside text-white/60 mb-4 space-y-2">
               <li><strong>Storage:</strong> Your API key is stored only in your browser&apos;s cookies. It is never transmitted to or stored on our servers.</li>
@@ -86,7 +108,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">5. User Content and Intellectual Property</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">6. User Content and Intellectual Property</h2>
             <p className="text-white/60 mb-4">
               <strong>Your Content:</strong> You retain full ownership of the topics, text, and other content you input into the Service. You also retain ownership of the presentations you create.
             </p>
@@ -102,7 +124,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">6. Acceptable Use</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">7. Acceptable Use</h2>
             <p className="text-white/60 mb-4">
               You agree not to use the Service to:
             </p>
@@ -122,7 +144,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">7. AI-Generated Content Disclaimer</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">8. AI-Generated Content Disclaimer</h2>
             <p className="text-white/60 mb-4">
               AI-generated content may be inaccurate, incomplete, or inappropriate. You acknowledge that:
             </p>
@@ -136,12 +158,13 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">8. Third-Party Services</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">9. Third-Party Services</h2>
             <p className="text-white/60 mb-4">
               The Service integrates with third-party services:
             </p>
             <ul className="list-disc list-inside text-white/60 mb-4 space-y-2">
               <li><strong>Google AI (Gemini):</strong> Powers text and image generation. Subject to Google&apos;s <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">Gemini API Terms of Service</a>.</li>
+              <li><strong>Stripe:</strong> Processes payments for token purchases. Subject to <a href="https://stripe.com/legal/consumer" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">Stripe&apos;s Terms of Service</a>.</li>
               <li><strong>Supabase:</strong> Provides authentication and data storage.</li>
               <li><strong>Vercel:</strong> Hosts the Service.</li>
             </ul>
@@ -151,7 +174,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">9. Service Availability</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">10. Service Availability</h2>
             <p className="text-white/60 mb-4">
               We strive to maintain Service availability but do not guarantee uninterrupted access. The Service may be unavailable due to:
             </p>
@@ -167,7 +190,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">10. Disclaimer of Warranties</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">11. Disclaimer of Warranties</h2>
             <p className="text-white/60 mb-4">
               THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. WE DISCLAIM ALL WARRANTIES, INCLUDING BUT NOT LIMITED TO:
             </p>
@@ -180,7 +203,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">11. Limitation of Liability</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">12. Limitation of Liability</h2>
             <p className="text-white/60 mb-4">
               TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO:
             </p>
@@ -196,7 +219,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">12. Indemnification</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">13. Indemnification</h2>
             <p className="text-white/60 mb-4">
               You agree to indemnify and hold us harmless from any claims, damages, losses, or expenses (including legal fees) arising from:
             </p>
@@ -209,7 +232,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">13. Termination</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">14. Termination</h2>
             <p className="text-white/60 mb-4">
               You may stop using the Service at any time. You may delete your account through the Service or by contacting us.
             </p>
@@ -222,21 +245,21 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">14. Governing Law</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">15. Governing Law</h2>
             <p className="text-white/60 mb-4">
               These Terms shall be governed by and construed in accordance with applicable laws, without regard to conflict of law principles. Any disputes arising from these Terms or your use of the Service shall be resolved through good-faith negotiation or, if necessary, binding arbitration.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">15. Severability</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">16. Severability</h2>
             <p className="text-white/60 mb-4">
               If any provision of these Terms is found to be unenforceable, the remaining provisions will continue in full force and effect.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">16. Contact</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">17. Contact</h2>
             <p className="text-white/60 mb-4">
               For questions about these Terms, please contact us at{" "}
               <a href="mailto:hello@banana.fyi" className="text-white hover:underline">

@@ -23,7 +23,7 @@ export default function PrivacyPage() {
 
         <div className="prose prose-invert prose-zinc max-w-none">
           <p className="text-white/70 text-lg mb-6">
-            Last updated: January 26, 2025
+            Last updated: January 28, 2025
           </p>
 
           <p className="text-white/60 mb-8">
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc list-inside text-white/60 mb-4 space-y-2">
               <li><strong>Google AI API Key:</strong> Your API key is stored only in your browser&apos;s cookies. It is never transmitted to or stored on our servers. API calls go directly from your browser to Google.</li>
-              <li><strong>Payment information:</strong> We do not process payments or store financial data.</li>
+              <li><strong>Credit card details:</strong> Payment processing is handled entirely by Stripe. We never see or store your full credit card number.</li>
               <li><strong>Precise location:</strong> We do not collect GPS or precise location data.</li>
               <li><strong>Contact lists:</strong> We do not access your contacts or address book.</li>
               <li><strong>Tracking across sites:</strong> We do not use third-party tracking or advertising cookies.</li>
@@ -78,7 +78,30 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">3. How We Use Your Information</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">3. Payment Information</h2>
+            <p className="text-white/60 mb-4">
+              When you purchase tokens, payment processing is handled by Stripe. We receive and store:
+            </p>
+            <ul className="list-disc list-inside text-white/60 mb-4 space-y-2">
+              <li><strong>Transaction records:</strong> Purchase amount, date, and token pack purchased</li>
+              <li><strong>Stripe customer ID:</strong> A unique identifier linking your account to Stripe</li>
+            </ul>
+            <p className="text-white/60 mb-4">
+              We do NOT receive or store:
+            </p>
+            <ul className="list-disc list-inside text-white/60 mb-4 space-y-2">
+              <li>Full credit card numbers</li>
+              <li>CVV or security codes</li>
+              <li>Bank account details</li>
+            </ul>
+            <p className="text-white/60 mb-4">
+              Stripe handles all sensitive payment data in accordance with PCI DSS standards. See{" "}
+              <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">Stripe&apos;s Privacy Policy</a> for details on how they handle your payment information.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold text-white mb-4">4. How We Use Your Information</h2>
             <p className="text-white/60 mb-4">
               We use the information we collect to:
             </p>
@@ -94,7 +117,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">4. Data Storage and Security</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">5. Data Storage and Security</h2>
 
             <h3 className="text-lg font-medium text-white/80 mb-3">Where We Store Data</h3>
             <p className="text-white/60 mb-4">
@@ -120,14 +143,18 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">5. Third-Party Services</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">6. Third-Party Services</h2>
             <p className="text-white/60 mb-4">
               We use the following third-party services, each with their own privacy policies:
             </p>
             <ul className="list-disc list-inside text-white/60 mb-4 space-y-2">
               <li>
-                <strong>Google AI (Gemini):</strong> Powers AI generation using your API key. Your prompts and generated content are subject to{" "}
+                <strong>Google AI (Gemini):</strong> Powers AI generation. Your prompts and generated content are subject to{" "}
                 <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">Google&apos;s Privacy Policy</a>.
+              </li>
+              <li>
+                <strong>Stripe:</strong> Processes payments for token purchases. See{" "}
+                <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">Stripe Privacy Policy</a>.
               </li>
               <li>
                 <strong>Supabase:</strong> Provides authentication and data storage. See{" "}
@@ -141,7 +168,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">6. Cookies</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">7. Cookies</h2>
             <p className="text-white/60 mb-4">
               We use a minimal number of cookies:
             </p>
@@ -160,7 +187,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">7. Data Retention</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">8. Data Retention</h2>
             <p className="text-white/60 mb-4">
               We retain your data as follows:
             </p>
@@ -173,7 +200,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">8. Your Rights</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">9. Your Rights</h2>
             <p className="text-white/60 mb-4">
               You have the following rights regarding your data:
             </p>
@@ -191,21 +218,21 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">9. Children&apos;s Privacy</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">10. Children&apos;s Privacy</h2>
             <p className="text-white/60 mb-4">
               The Service is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately and we will delete it.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">10. International Data Transfers</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">11. International Data Transfers</h2>
             <p className="text-white/60 mb-4">
               Your data may be processed in countries other than your own. Our service providers (Supabase, Vercel) operate globally and may transfer data internationally. By using the Service, you consent to such transfers.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">11. Changes to This Policy</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">12. Changes to This Policy</h2>
             <p className="text-white/60 mb-4">
               We may update this Privacy Policy from time to time. If we make material changes, we will:
             </p>
@@ -220,7 +247,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">12. Contact Us</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">13. Contact Us</h2>
             <p className="text-white/60 mb-4">
               If you have questions about this Privacy Policy or our data practices, please contact us at:
             </p>
