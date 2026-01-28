@@ -38,12 +38,12 @@ export async function getOrCreateUserTokens(
 
 /**
  * Calculate available token balance for a user
- * Available = purchases - pending (reserved) - completed (actual)
+ * Available = purchases - pending (reserved) - completed (actual) - failed (billed)
  */
 export async function getAvailableBalance(userId: string): Promise<number> {
   const userTokens = await getOrCreateUserTokens(userId);
 
-  const [totalPurchased, pendingUsage, completedUsage] = await Promise.all([
+  const [totalPurchased, pendingUsage, completedUsage, failedUsage] = await Promise.all([
     prisma.tokenPurchase.aggregate({
       where: { userTokensId: userTokens.id, status: "completed" },
       _sum: { tokensAmount: true },
@@ -56,12 +56,18 @@ export async function getAvailableBalance(userId: string): Promise<number> {
       where: { userTokensId: userTokens.id, status: "completed" },
       _sum: { tokensUsed: true },
     }),
+    // Failed usages with tokensUsed set are billed (API call was made)
+    prisma.tokenUsage.aggregate({
+      where: { userTokensId: userTokens.id, status: "failed", tokensUsed: { not: null } },
+      _sum: { tokensUsed: true },
+    }),
   ]);
 
   return (
     (totalPurchased._sum.tokensAmount ?? 0) -
     (pendingUsage._sum.estimatedTokens ?? 0) -
-    (completedUsage._sum.tokensUsed ?? 0)
+    (completedUsage._sum.tokensUsed ?? 0) -
+    (failedUsage._sum.tokensUsed ?? 0)
   );
 }
 
@@ -109,13 +115,17 @@ export async function completeUsage(
 }
 
 /**
- * Fail a usage record (releases reserved tokens)
+ * Fail a usage record
+ * @param usageId - The usage record ID
+ * @param tokensUsed - If provided, the user is still billed (API call was made before failure)
+ *                     If omitted, tokens are released (failure before API call)
  */
-export async function failUsage(usageId: string): Promise<TokenUsage> {
+export async function failUsage(usageId: string, tokensUsed?: number): Promise<TokenUsage> {
   return prisma.tokenUsage.update({
     where: { id: usageId },
     data: {
       status: "failed",
+      tokensUsed: tokensUsed ?? null,
       completedAt: new Date(),
     },
   });

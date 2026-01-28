@@ -14,6 +14,8 @@ import { calculateImagePromptsCost } from "@/lib/token-constants";
 
 export async function POST(request: NextRequest) {
   let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;
+  let apiCalled = false;
+  let estimatedCost = 0;
 
   try {
     // Parse request body first to get user's preferred mode
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
       }
 
       const available = await getAvailableBalance(user.id);
-      const estimatedCost = calculateImagePromptsCost(slideCount, visualImageCount);
+      estimatedCost = calculateImagePromptsCost(slideCount, visualImageCount);
 
       if (available < estimatedCost) {
         return NextResponse.json(
@@ -111,6 +113,7 @@ export async function POST(request: NextRequest) {
       userPrompt += `\n\nIMPORTANT: The user has provided ${visualImages.length} reference image(s) for visual style. Analyze the visual style, colors, composition, and aesthetic of these images. Incorporate similar visual elements and style into ALL generated image prompts to maintain visual consistency.`;
     }
 
+    apiCalled = true;
     const result = await generateStructuredOutput<ImagePromptResponse>(
       client,
       IMAGE_PROMPT_SYSTEM_PROMPT,
@@ -122,7 +125,7 @@ export async function POST(request: NextRequest) {
     // Validate response structure
     if (!result.imagePrompts || !Array.isArray(result.imagePrompts) || result.imagePrompts.length !== slides.length) {
       if (usageRecord) {
-        await failUsage(usageRecord.id);
+        await failUsage(usageRecord.id, estimatedCost); // Bill - API was called
       }
       return NextResponse.json(
         { error: "Invalid image prompts format received" },
@@ -138,9 +141,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Image prompt generation error:", error);
-    // Release reserved tokens on failure
+    // Bill if API was called, otherwise release reserved tokens
     if (usageRecord) {
-      await failUsage(usageRecord.id);
+      await failUsage(usageRecord.id, apiCalled ? estimatedCost : undefined);
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate image prompts" },

@@ -15,6 +15,7 @@ const DEFAULT_IMAGE_SIZE: ImageSize = "2K";
 
 export async function POST(request: NextRequest) {
   let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;
+  let apiCalled = false;
 
   try {
     // Parse request body first to get user's preferred mode
@@ -120,6 +121,7 @@ export async function POST(request: NextRequest) {
     // Enhance prompt with the selected style
     const enhancedPrompt = `${prompt}. ${stylePrompt}`;
 
+    apiCalled = true;
     const imageBase64 = await generateImage(
       client,
       enhancedPrompt,
@@ -138,9 +140,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Image generation error:", error);
-    // Release reserved tokens on failure
+    // Bill if API was called, otherwise release reserved tokens
     if (usageRecord) {
-      await failUsage(usageRecord.id);
+      await failUsage(usageRecord.id, apiCalled ? TOKEN_COSTS.image : undefined);
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate image" },

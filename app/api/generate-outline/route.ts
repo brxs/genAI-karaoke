@@ -15,6 +15,8 @@ import { calculateOutlineCost } from "@/lib/token-constants";
 
 export async function POST(request: NextRequest) {
   let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;
+  let apiCalled = false;
+  let estimatedCost = 0;
 
   try {
     // Parse request body first to get user's preferred mode
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
       }
 
       const available = await getAvailableBalance(user.id);
-      const estimatedCost = calculateOutlineCost(useWebSearch, attachedImageCount);
+      estimatedCost = calculateOutlineCost(useWebSearch, attachedImageCount);
 
       if (available < estimatedCost) {
         return NextResponse.json(
@@ -126,6 +128,7 @@ export async function POST(request: NextRequest) {
     // Only pass content images to the model for outline generation
     const imagesToSend = contentImages.length > 0 ? contentImages : undefined;
 
+    apiCalled = true;
     const outline = await generateStructuredOutput<OutlineResponse>(
       client,
       enhancedSystemPrompt,
@@ -137,7 +140,7 @@ export async function POST(request: NextRequest) {
     // Validate response structure
     if (!outline.slides || !Array.isArray(outline.slides) || outline.slides.length !== slideCount) {
       if (usageRecord) {
-        await failUsage(usageRecord.id);
+        await failUsage(usageRecord.id, estimatedCost); // Bill - API was called
       }
       return NextResponse.json(
         { error: "Invalid outline format received" },
@@ -154,9 +157,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(outline);
   } catch (error) {
     console.error("Outline generation error:", error);
-    // Release reserved tokens on failure
+    // Bill if API was called, otherwise release reserved tokens
     if (usageRecord) {
-      await failUsage(usageRecord.id);
+      await failUsage(usageRecord.id, apiCalled ? estimatedCost : undefined);
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate outline" },

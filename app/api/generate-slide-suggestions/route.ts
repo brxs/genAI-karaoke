@@ -32,6 +32,7 @@ Make the suggestions varied - offer different angles, perspectives, or subtopics
 export async function POST(request: NextRequest) {
   console.log("[generate-slide-suggestions] POST request received");
   let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;
+  let apiCalled = false;
 
   try {
     // Parse request body first to get user's preferred mode
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
     const userPrompt = `Generate 3 slide suggestions for a presentation about: "${topic}"${existingContext}`;
 
     console.log("[generate-slide-suggestions] Calling Gemini API...");
+    apiCalled = true;
     const result = await generateStructuredOutput<SlideSuggestionsResponse>(
       client,
       SLIDE_SUGGESTIONS_SYSTEM_PROMPT,
@@ -138,7 +140,7 @@ export async function POST(request: NextRequest) {
         count: result.suggestions?.length
       });
       if (usageRecord) {
-        await failUsage(usageRecord.id);
+        await failUsage(usageRecord.id, TOKEN_COSTS.slideSuggestions); // Bill - API was called
       }
       return NextResponse.json(
         { error: "Invalid suggestions format received" },
@@ -157,8 +159,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("[generate-slide-suggestions] Error:", error);
+    // Bill if API was called, otherwise release reserved tokens
     if (usageRecord) {
-      await failUsage(usageRecord.id);
+      await failUsage(usageRecord.id, apiCalled ? TOKEN_COSTS.slideSuggestions : undefined);
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate suggestions" },

@@ -32,6 +32,7 @@ Return a single image prompt for the slide provided.`;
 export async function POST(request: NextRequest) {
   console.log("[generate-single-image-prompt] POST request received");
   let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;
+  let apiCalled = false;
 
   try {
     // Parse request body first to get user's preferred mode
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
     const userPrompt = `Generate an image prompt for this presentation slide:\n\n${slideDescription}`;
 
     console.log("[generate-single-image-prompt] Calling Gemini API...");
+    apiCalled = true;
     const result = await generateStructuredOutput<SingleImagePromptResponse>(
       client,
       SINGLE_IMAGE_PROMPT_SYSTEM,
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
     if (!result.imagePrompt) {
       console.log("[generate-single-image-prompt] Invalid response format:", result);
       if (usageRecord) {
-        await failUsage(usageRecord.id);
+        await failUsage(usageRecord.id, TOKEN_COSTS.imagePrompts); // Bill - API was called
       }
       return NextResponse.json(
         { error: "Invalid image prompt format received" },
@@ -163,8 +165,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("[generate-single-image-prompt] Error:", error);
+    // Bill if API was called, otherwise release reserved tokens
     if (usageRecord) {
-      await failUsage(usageRecord.id);
+      await failUsage(usageRecord.id, apiCalled ? TOKEN_COSTS.imagePrompts : undefined);
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate image prompt" },
