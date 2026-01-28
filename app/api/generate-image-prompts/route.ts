@@ -9,8 +9,8 @@ import {
   reserveTokens,
   completeUsage,
   failUsage,
-  TOKEN_COSTS,
 } from "@/lib/tokens";
+import { calculateImagePromptsCost } from "@/lib/token-constants";
 
 export async function POST(request: NextRequest) {
   let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;
@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
       visualImages?: AttachedImage[];
       preferredMode?: "tokens" | "byok";
     };
+
+    const slideCount = body.slides?.length || 0;
+    const visualImageCount = body.visualImages?.length || 0;
 
     // Check for BYOK cookie
     const cookieApiKey = request.cookies.get("google_ai_api_key")?.value;
@@ -46,7 +49,7 @@ export async function POST(request: NextRequest) {
       }
 
       const available = await getAvailableBalance(user.id);
-      const estimatedCost = TOKEN_COSTS.imagePrompts;
+      const estimatedCost = calculateImagePromptsCost(slideCount, visualImageCount);
 
       if (available < estimatedCost) {
         return NextResponse.json(
@@ -129,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     // Mark usage as completed
     if (usageRecord) {
-      await completeUsage(usageRecord.id, TOKEN_COSTS.imagePrompts);
+      await completeUsage(usageRecord.id, calculateImagePromptsCost(slideCount, visualImageCount));
     }
 
     return NextResponse.json(result);

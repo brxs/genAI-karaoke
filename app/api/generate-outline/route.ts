@@ -10,8 +10,8 @@ import {
   reserveTokens,
   completeUsage,
   failUsage,
-  TOKEN_COSTS,
 } from "@/lib/tokens";
+import { calculateOutlineCost } from "@/lib/token-constants";
 
 export async function POST(request: NextRequest) {
   let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;
@@ -28,6 +28,10 @@ export async function POST(request: NextRequest) {
       useWebSearch?: boolean;
       preferredMode?: "tokens" | "byok";
     };
+
+    const useWebSearch = body.useWebSearch ?? true;
+    const contentImages = body.attachedImages?.filter((img) => img.useForContent) || [];
+    const attachedImageCount = contentImages.length;
 
     // Check for BYOK cookie
     const cookieApiKey = request.cookies.get("google_ai_api_key")?.value;
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
       }
 
       const available = await getAvailableBalance(user.id);
-      const estimatedCost = TOKEN_COSTS.outline;
+      const estimatedCost = calculateOutlineCost(useWebSearch, attachedImageCount);
 
       if (available < estimatedCost) {
         return NextResponse.json(
@@ -85,7 +89,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { topic, absurdity = 3, maxBulletPoints = 3, slideCount = 7, context, attachedImages, useWebSearch = true } = body;
+    const { topic, absurdity = 3, maxBulletPoints = 3, slideCount = 7, context, attachedImages } = body;
 
     console.log("[generate-outline] Request params:", { topic, absurdity, maxBulletPoints, slideCount, hasContext: !!context, imageCount: attachedImages?.length || 0, useWebSearch });
 
@@ -110,9 +114,6 @@ export async function POST(request: NextRequest) {
       : `Create a hilarious ${slideCount}-slide presentation about: "${topic}"`;
 
     let userPrompt = baseUserPrompt;
-
-    // Filter images - only content images are used for outline generation
-    const contentImages = attachedImages?.filter((img) => img.useForContent) || [];
 
     if (contentImages.length > 0) {
       userPrompt += `\n\nThe user has attached ${contentImages.length} reference image(s). Extract information, data, or topics from these images to inform the presentation content.`;
@@ -146,7 +147,8 @@ export async function POST(request: NextRequest) {
 
     // Mark usage as completed with actual token cost
     if (usageRecord) {
-      await completeUsage(usageRecord.id, TOKEN_COSTS.outline);
+      const actualCost = calculateOutlineCost(useWebSearch, attachedImageCount);
+      await completeUsage(usageRecord.id, actualCost);
     }
 
     return NextResponse.json(outline);

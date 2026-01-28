@@ -1,6 +1,12 @@
 import { GoogleGenAI, Tool, Part } from "@google/genai";
 import type { TObject } from "@sinclair/typebox";
 import type { AttachedImage } from "./types";
+import {
+  calculateTextCost,
+  calculateImageCost,
+  formatCost,
+  type ImageSize as PricingImageSize,
+} from "./gemini-pricing";
 
 // Retry helper with exponential backoff
 async function withRetry<T>(
@@ -58,11 +64,17 @@ export async function generateText(
 
   // Log usage metadata for token cost analysis
   if (response.usageMetadata) {
+    const cost = calculateTextCost({
+      promptTokenCount: response.usageMetadata.promptTokenCount ?? 0,
+      candidatesTokenCount: response.usageMetadata.candidatesTokenCount ?? 0,
+      googleSearchEnabled: !!options?.tools?.some(t => "googleSearch" in t),
+    });
     console.log("[GEMINI_USAGE] generateText:", {
       model: "gemini-3-pro-preview",
       promptTokenCount: response.usageMetadata.promptTokenCount,
       candidatesTokenCount: response.usageMetadata.candidatesTokenCount,
       totalTokenCount: response.usageMetadata.totalTokenCount,
+      cost: formatCost(cost),
     });
   }
 
@@ -110,12 +122,18 @@ export async function generateStructuredOutput<T>(
 
   // Log usage metadata for token cost analysis
   if (response.usageMetadata) {
+    const cost = calculateTextCost({
+      promptTokenCount: response.usageMetadata.promptTokenCount ?? 0,
+      candidatesTokenCount: response.usageMetadata.candidatesTokenCount ?? 0,
+      googleSearchEnabled: !!options?.tools?.some(t => "googleSearch" in t),
+    });
     console.log("[GEMINI_USAGE] generateStructuredOutput:", {
       model: "gemini-3-pro-preview",
       promptTokenCount: response.usageMetadata.promptTokenCount,
       candidatesTokenCount: response.usageMetadata.candidatesTokenCount,
       totalTokenCount: response.usageMetadata.totalTokenCount,
       imageCount: options?.images?.length || 0,
+      cost: formatCost(cost),
     });
   }
 
@@ -151,6 +169,10 @@ export async function generateImage(
 
     // Log usage metadata for token cost analysis
     if (response.usageMetadata) {
+      const cost = calculateImageCost({
+        promptTokenCount: response.usageMetadata.promptTokenCount ?? 0,
+        imageSize: imageSize as PricingImageSize,
+      });
       console.log("[GEMINI_USAGE] generateImage:", {
         model: "gemini-3-pro-image-preview",
         promptTokenCount: response.usageMetadata.promptTokenCount,
@@ -158,6 +180,7 @@ export async function generateImage(
         totalTokenCount: response.usageMetadata.totalTokenCount,
         aspectRatio,
         imageSize,
+        cost: formatCost(cost),
       });
     }
 

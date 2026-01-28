@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTokens, TOKEN_PACKS, formatTokenPrice, type PackType } from "@/hooks/useTokens";
+import { useTokens, type PackType } from "@/hooks/useTokens";
+import TokenPackList from "./TokenPackList";
 import { usePreferredMode } from "@/hooks/usePreferredMode";
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: { email?: string } | null;
+  onSignIn: () => void;
   onSignOut: () => void;
   onApiKeySave: () => void;
   onApiKeyClear: () => void;
@@ -17,6 +19,7 @@ export default function SettingsModal({
   isOpen,
   onClose,
   user,
+  onSignIn,
   onSignOut,
   onApiKeySave,
   onApiKeyClear,
@@ -135,11 +138,11 @@ export default function SettingsModal({
         </div>
 
         {/* Account Section */}
-        {user && (
-          <div className="mb-6 pb-6 border-b border-white/10">
-            <h3 className="text-sm font-medium text-white/50 uppercase tracking-wider mb-3">
-              Account
-            </h3>
+        <div className="mb-6 pb-6 border-b border-white/10">
+          <h3 className="text-sm font-medium text-white/50 uppercase tracking-wider mb-3">
+            Account
+          </h3>
+          {user ? (
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white font-medium">{user.email}</p>
@@ -152,95 +155,89 @@ export default function SettingsModal({
                 Sign Out
               </button>
             </div>
-          </div>
-        )}
-
-        {/* Generation Mode Section - only for logged in users */}
-        {user && (
-          <div className="mb-6 pb-6 border-b border-white/10">
-            <h3 className="text-sm font-medium text-white/50 uppercase tracking-wider mb-3">
-              Generation Mode
-            </h3>
-
-            {/* Mode Toggle */}
-            <div className="grid grid-cols-2 gap-2 mb-4">
+          ) : (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/60">Not signed in</p>
+                <p className="text-white/40 text-sm">Sign in to use tokens</p>
+              </div>
               <button
-                onClick={() => setPreferredMode("tokens")}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  !isUsingBYOK
-                    ? "bg-white/10 border-white/20 text-white"
-                    : "bg-white/[0.02] border-white/10 text-white/50 hover:bg-white/5"
-                }`}
+                onClick={onSignIn}
+                className="px-4 py-2 text-sm text-black rounded-lg font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background: "linear-gradient(180deg, #ffffff 0%, #e4e4e7 100%)",
+                  boxShadow: "0 2px 0 #a1a1aa, 0 3px 8px rgba(0,0,0,0.2)",
+                }}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <img src="/banana.svg" alt="" className="w-4 h-4" />
-                  <span className="font-medium text-sm">Tokens</span>
-                </div>
-                <p className="text-xs text-white/40">Use your token balance</p>
-              </button>
-              <button
-                onClick={() => setPreferredMode("byok")}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  isUsingBYOK
-                    ? "bg-white/10 border-white/20 text-white"
-                    : "bg-white/[0.02] border-white/10 text-white/50 hover:bg-white/5"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
-                  <span className="font-medium text-sm">Your API Key</span>
-                </div>
-                <p className="text-xs text-white/40">Bring your own key</p>
+                Sign In
               </button>
             </div>
+          )}
+        </div>
 
-            {/* Token Mode Content */}
-            {!isUsingBYOK && (
-              <div className="space-y-3">
-                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-                  <p className="text-sm text-white/60">Current balance</p>
-                  <p className="text-xl font-bold text-white">
-                    {balance !== null ? balance.toLocaleString() : "—"} tokens
-                  </p>
-                </div>
+        {/* Generation Mode Section */}
+        <div className="mb-6 border-white/10">
+          <h3 className="text-sm font-medium text-white/50 uppercase tracking-wider mb-3">
+            Generation Mode
+          </h3>
 
-                <div className="space-y-2">
-                  <p className="text-xs text-white/40">Buy more tokens</p>
-                  {(Object.entries(TOKEN_PACKS) as [PackType, typeof TOKEN_PACKS[PackType]][])
-                    .map(([type, pack]) => (
-                      <button
-                        key={type}
-                        onClick={() => handlePurchase(type)}
-                        disabled={purchasingPack !== null}
-                        className="w-full p-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 rounded-lg transition-all text-left disabled:opacity-50"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-sm text-white">{pack.name}</span>
-                            <span className="text-xs text-white/40 ml-2">
-                              {pack.tokens.toLocaleString()} tokens
-                            </span>
-                          </div>
-                          <span className="text-sm font-medium text-white">
-                            {formatTokenPrice(pack.price)}
-                          </span>
-                        </div>
-                        {purchasingPack === type && (
-                          <p className="text-xs text-white/50 mt-1">Redirecting to checkout...</p>
-                        )}
-                      </button>
-                    )
-                  )}
-                </div>
+          {/* Mode Toggle */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button
+              onClick={() => setPreferredMode("tokens")}
+              className={`p-3 rounded-xl border text-left transition-all ${
+                !isUsingBYOK
+                  ? "bg-white/10 border-white/20 text-white"
+                  : "bg-white/[0.02] border-white/10 text-white/50 hover:bg-white/5"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <img src="/banana.svg" alt="" className="w-4 h-4" />
+                <span className="font-medium text-sm">Tokens</span>
               </div>
-            )}
+              <p className="text-xs text-white/40">Use your token balance</p>
+            </button>
+            <button
+              onClick={() => setPreferredMode("byok")}
+              className={`p-3 rounded-xl border text-left transition-all ${
+                isUsingBYOK
+                  ? "bg-white/10 border-white/20 text-white"
+                  : "bg-white/[0.02] border-white/10 text-white/50 hover:bg-white/5"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                <span className="font-medium text-sm">Your API Key</span>
+              </div>
+              <p className="text-xs text-white/40">Bring your own key</p>
+            </button>
           </div>
-        )}
 
-        {/* API Key Section - show for non-logged-in users OR when in BYOK mode */}
-        {(!user || isUsingBYOK) && (
+          {/* Token Mode Content */}
+          {!isUsingBYOK && (
+            <div className="space-y-3">
+              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-sm text-white/60">Current balance</p>
+                <p className="text-xl font-bold text-white">
+                  {user ? (balance !== null ? balance.toLocaleString() : "—") : "0"} tokens
+                </p>
+              </div>
+
+              <div className={`space-y-2 ${!user ? "opacity-50 pointer-events-none" : ""}`}>
+                <p className="text-xs text-white/40">Buy more tokens</p>
+                <TokenPackList
+                  onPurchase={handlePurchase}
+                  purchasingPack={purchasingPack}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* API Key Section - show only when in BYOK mode */}
+        {isUsingBYOK && (
           <div>
             <h3 className="text-sm font-medium text-white/50 uppercase tracking-wider mb-3">
               API Key

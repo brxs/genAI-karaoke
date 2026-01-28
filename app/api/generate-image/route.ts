@@ -11,7 +11,7 @@ import {
 } from "@/lib/tokens";
 
 const DEFAULT_ASPECT_RATIO: AspectRatio = "16:9";
-const DEFAULT_IMAGE_SIZE: ImageSize = "1K";
+const DEFAULT_IMAGE_SIZE: ImageSize = "2K";
 
 export async function POST(request: NextRequest) {
   let usageRecord: Awaited<ReturnType<typeof reserveTokens>> | null = null;

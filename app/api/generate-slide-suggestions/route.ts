@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       }
 
       const available = await getAvailableBalance(user.id);
-      const estimatedCost = TOKEN_COSTS.outline; // Use outline cost for suggestions
+      const estimatedCost = TOKEN_COSTS.slideSuggestions;
 
       if (available < estimatedCost) {
         return NextResponse.json(
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       usageRecord = await reserveTokens(
         user.id,
         estimatedCost,
-        "outline"
+        "slideSuggestions"
       );
 
       // Use server-side API key
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     // Complete usage record
     if (usageRecord) {
-      await completeUsage(usageRecord.id, TOKEN_COSTS.outline);
+      await completeUsage(usageRecord.id, TOKEN_COSTS.slideSuggestions);
     }
 
     console.log("[generate-slide-suggestions] Successfully generated suggestions:",

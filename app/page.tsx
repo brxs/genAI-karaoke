@@ -178,6 +178,10 @@ export default function Home() {
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         user={user}
+        onSignIn={() => {
+          setShowSettingsModal(false);
+          setShowAuthModal(true);
+        }}
         onSignOut={signOut}
         onApiKeySave={handleApiKeySave}
         onApiKeyClear={() => setHasApiKey(false)}

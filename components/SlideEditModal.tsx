@@ -83,7 +83,7 @@ export default function SlideEditModal({
       }
 
       const data = await res.json();
-      setSuggestions(data.suggestions);
+      setSuggestions((previous) => [...data.suggestions, ...previous]);
     } catch (err) {
       setSuggestionsError(err instanceof Error ? err.message : "Failed to load suggestions");
     } finally {
@@ -217,9 +217,21 @@ export default function SlideEditModal({
                       <button
                         onClick={fetchSuggestions}
                         disabled={!topic}
-                        className="px-3 py-1.5 text-xs text-white/60 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-white/60 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Generate Ideas ({TOKEN_COSTS.outline} tokens)
+                        <img src="/banana.svg" alt="Banana" className="w-3.5 h-3.5" />
+                        Generate Ideas ({TOKEN_COSTS.slideSuggestions} token)
+                      </button>
+                    )}
+                    {suggestions.length > 0 && !isLoadingSuggestions && (
+                      <button
+                        onClick={fetchSuggestions}
+                        disabled={isLoadingSuggestions}
+                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-white/40 hover:text-white/70 hover:bg-white/5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Get new suggestions"
+                      >
+                        <img src="/banana.svg" alt="Banana" className="w-3.5 h-3.5" />
+                        More ideas ({TOKEN_COSTS.slideSuggestions} token)
                       </button>
                     )}
                   </div>

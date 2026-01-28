@@ -66,8 +66,7 @@ export async function POST(request: NextRequest) {
       }
 
       const available = await getAvailableBalance(user.id);
-      // Use a fraction of imagePrompts cost for single prompt (1 token minimum)
-      const estimatedCost = 1;
+      const estimatedCost = TOKEN_COSTS.imagePrompts;
 
       if (available < estimatedCost) {
         return NextResponse.json(
@@ -122,9 +121,8 @@ export async function POST(request: NextRequest) {
 
     // For title slides, generate a special prompt (no API call needed)
     if (isTitleSlide) {
-      // Complete usage with minimal cost since no API call
       if (usageRecord) {
-        await completeUsage(usageRecord.id, 1);
+        await completeUsage(usageRecord.id, TOKEN_COSTS.imagePrompts);
       }
       const imagePrompt = `A bold, eye-catching title slide for a presentation called "${title}". The title "${title}" should be prominently displayed in large, clear text. Professional presentation design with dramatic visual impact.`;
       console.log("[generate-single-image-prompt] Generated title slide prompt");
@@ -158,7 +156,7 @@ export async function POST(request: NextRequest) {
 
     // Complete usage record
     if (usageRecord) {
-      await completeUsage(usageRecord.id, 1);
+      await completeUsage(usageRecord.id, TOKEN_COSTS.imagePrompts);
     }
 
     console.log("[generate-single-image-prompt] Successfully generated prompt:", result.imagePrompt.substring(0, 100) + "...");

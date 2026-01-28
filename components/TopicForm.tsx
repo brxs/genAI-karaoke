@@ -111,7 +111,9 @@ export default function TopicForm({ onSubmit, isLoading, hasApiKey, onSetApiKey 
   const { balance } = useTokens();
   const { preferredMode } = usePreferredMode();
 
-  const estimatedCost = estimatePresentationCost(slideCount);
+  const contentImageCount = attachedImages.filter(img => img.useForContent).length;
+  const visualImageCount = attachedImages.filter(img => img.useForVisual).length;
+  const estimatedCost = estimatePresentationCost(slideCount, useWebSearch, contentImageCount, visualImageCount);
   // Use tokens if user is logged in and prefers token mode
   const useTokenMode = user !== null && preferredMode === "tokens";
   // Use BYOK if user prefers it and has an API key
